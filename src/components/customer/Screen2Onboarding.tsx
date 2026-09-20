@@ -9,6 +9,7 @@ export const Screen2Onboarding: React.FC = () => {
     orderType,
     setCustomerDetails,
     setCustomerScreen,
+    navigate,
   } = useCafe();
 
   const [nameInput, setNameInput] = useState(customerName);
@@ -30,6 +31,12 @@ export const Screen2Onboarding: React.FC = () => {
     setErrorMessage(null);
     setCustomerDetails(nameInput.trim(), typeInput, null);
     setCustomerScreen(3); // Advance to Menu Catalog
+    navigate('/menu');
+  };
+
+  const handleGoWelcome = () => {
+    setCustomerScreen(1);
+    navigate('/welcome');
   };
 
   return (
@@ -37,15 +44,19 @@ export const Screen2Onboarding: React.FC = () => {
       <div>
         {/* Top Back Link */}
         <button
-          onClick={() => setCustomerScreen(1)}
-          className="inline-flex items-center gap-1 text-xs font-medium text-[#7A6253] hover:text-[#543929] transition mb-4"
+          onClick={handleGoWelcome}
+          className="inline-flex items-center gap-1 text-xs font-semibold text-[#7A6253] hover:text-[#5C3D2E] transition mb-4 cursor-pointer"
         >
           <span>‹</span>
           <span>Back</span>
         </button>
 
-        {/* Circular White Sticker Badge with Soft Drop Shadow */}
-        <div className="w-48 h-48 sm:w-52 sm:h-52 mx-auto rounded-full bg-white shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] flex items-center justify-center p-2.5 mb-5 transition-transform duration-300">
+        {/* Circular White Sticker Badge with Soft Drop Shadow (Clickable to /welcome) */}
+        <div
+          onClick={handleGoWelcome}
+          title="Café Pepita — Return to Welcome Screen"
+          className="w-48 h-48 sm:w-52 sm:h-52 mx-auto rounded-full bg-white shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] flex items-center justify-center p-2.5 mb-5 transition-transform duration-300 hover:scale-105 cursor-pointer"
+        >
           <CafeLogo size={200} className="w-full h-full" showBorder={true} />
         </div>
 
@@ -72,7 +83,7 @@ export const Screen2Onboarding: React.FC = () => {
                 if (errorMessage) setErrorMessage(null);
               }}
               placeholder="e.g. Barbara"
-              className="w-full px-4 py-3.5 bg-[#EADBCE] rounded-2xl text-xs text-[#3B2215] placeholder-[#9C8E82] focus:outline-none focus:ring-2 focus:ring-[#543929] transition border-0"
+              className="w-full px-4 py-3.5 bg-[#EADBCE] rounded-2xl text-xs text-[#3B2215] placeholder-[#9C8E82] focus:outline-none focus:ring-2 focus:ring-[#5C3D2E] transition border-0"
             />
           </div>
 
@@ -85,10 +96,10 @@ export const Screen2Onboarding: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setTypeInput('dine-in')}
-                className={`py-3.5 px-2 sm:px-3 rounded-2xl text-xs font-semibold transition text-center shadow-xs ${
+                className={`py-3.5 px-2 sm:px-3 rounded-2xl text-xs font-semibold transition text-center shadow-xs cursor-pointer ${
                   typeInput === 'dine-in'
-                    ? 'bg-[#543929] text-white shadow-sm'
-                    : 'bg-white text-[#3B2215] border border-[#EADBCE]'
+                    ? 'bg-[#5C3D2E] text-white shadow-sm'
+                    : 'bg-white text-[#3B2215] border border-[#EADBCE] hover:bg-[#FAF6F0]'
                 }`}
               >
                 Dine-in
@@ -97,10 +108,10 @@ export const Screen2Onboarding: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setTypeInput('take-out')}
-                className={`py-3.5 px-2 sm:px-3 rounded-2xl text-xs font-semibold transition text-center shadow-xs ${
+                className={`py-3.5 px-2 sm:px-3 rounded-2xl text-xs font-semibold transition text-center shadow-xs cursor-pointer ${
                   typeInput === 'take-out'
-                    ? 'bg-[#543929] text-white shadow-sm'
-                    : 'bg-white text-[#3B2215] border border-[#EADBCE]'
+                    ? 'bg-[#5C3D2E] text-white shadow-sm'
+                    : 'bg-white text-[#3B2215] border border-[#EADBCE] hover:bg-[#FAF6F0]'
                 }`}
               >
                 Take-out
@@ -109,10 +120,10 @@ export const Screen2Onboarding: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setTypeInput('delivery')}
-                className={`py-3.5 px-2 sm:px-3 rounded-2xl text-xs font-semibold transition text-center shadow-xs ${
+                className={`py-3.5 px-2 sm:px-3 rounded-2xl text-xs font-semibold transition text-center shadow-xs cursor-pointer ${
                   typeInput === 'delivery'
-                    ? 'bg-[#543929] text-white shadow-sm'
-                    : 'bg-white text-[#3B2215] border border-[#EADBCE]'
+                    ? 'bg-[#5C3D2E] text-white shadow-sm'
+                    : 'bg-white text-[#3B2215] border border-[#EADBCE] hover:bg-[#FAF6F0]'
                 }`}
               >
                 Delivery
@@ -127,14 +138,14 @@ export const Screen2Onboarding: React.FC = () => {
             </p>
           )}
 
-          {/* View Menu Button */}
+          {/* View Menu Button (Unified CTA Button) */}
           <div className="pt-2">
             <button
               onClick={handleContinue}
-              className={`w-full py-4 rounded-2xl text-xs font-semibold shadow-xs transition duration-200 active:scale-98 ${
+              className={`w-full py-3.5 px-6 rounded-2xl text-sm font-bold shadow-md transition duration-200 active:scale-98 text-center ${
                 isFormValid
-                  ? 'bg-[#543929] hover:bg-[#432C1D] text-white cursor-pointer shadow-md'
-                  : 'bg-[#D4C1AD] text-white/95 cursor-not-allowed'
+                  ? 'bg-[#5C3D2E] hover:bg-[#4A2F22] active:bg-[#3D261B] text-white cursor-pointer'
+                  : 'bg-[#D4C1AD] text-white/90 cursor-not-allowed shadow-none'
               }`}
             >
               View Menu →

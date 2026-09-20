@@ -22,7 +22,7 @@ export const Screen1Splash: React.FC = () => {
         {/* Start Ordering Button */}
         <button
           onClick={() => setCustomerScreen(2)}
-          className="w-full max-w-[240px] py-3.5 px-6 bg-[#543929] hover:bg-[#432C1D] active:scale-98 text-white font-semibold rounded-2xl shadow-md transition duration-200 text-sm"
+          className="w-full max-w-[240px] py-3.5 px-6 bg-[#5C3D2E] hover:bg-[#4A2F22] active:bg-[#3D261B] active:scale-98 text-white font-bold rounded-2xl shadow-md transition duration-200 text-sm cursor-pointer"
         >
           Start Ordering
         </button>

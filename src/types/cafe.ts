@@ -1,5 +1,19 @@
 export type Role = 'customer' | 'staff' | 'admin';
 
+export type TokenAbility = 'role:customer' | 'role:staff' | 'role:admin';
+
+export interface AuthSession {
+  token: string;
+  user: {
+    id: number;
+    name: string;
+    email: string;
+    role: 'staff' | 'admin';
+  };
+  abilities: TokenAbility[];
+  login_at: string;
+}
+
 export type Permission =
   | 'view-menu'
   | 'place-order'

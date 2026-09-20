@@ -4,7 +4,7 @@ import { ChevronLeft, Banknote, QrCode, ShieldCheck, CheckCircle2, AlertCircle }
 import { PaymentMethod } from '../../types/cafe';
 
 export const Screen7PaymentModal: React.FC = () => {
-  const { cart, placeOrder, setCustomerScreen, customerName, orderType } = useCafe();
+  const { cart, placeOrder, setCustomerScreen, customerName, orderType, navigate } = useCafe();
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [gcashRef, setGcashRef] = useState<string>('');
@@ -47,6 +47,7 @@ export const Screen7PaymentModal: React.FC = () => {
     setTimeout(() => {
       placeOrder(paymentMethod, gcashRef);
       setIsProcessing(false);
+      navigate('/order-status');
     }, 400);
   };
 
@@ -55,14 +56,17 @@ export const Screen7PaymentModal: React.FC = () => {
       <div>
         {/* Navigation */}
         <button
+          type="button"
           onClick={() => {
             if (orderType === 'delivery') {
               setCustomerScreen(9);
+              navigate('/delivery-details');
             } else {
               setCustomerScreen(6);
+              navigate('/cart');
             }
           }}
-          className="inline-flex items-center gap-1 text-xs font-semibold text-[#8C7A6B] hover:text-[#5C4033] mb-4 transition"
+          className="inline-flex items-center gap-1 text-xs font-semibold text-[#8C7A6B] hover:text-[#5C3D2E] mb-4 transition cursor-pointer"
         >
           <ChevronLeft className="w-4 h-4" />
           <span>{orderType === 'delivery' ? 'Back to Delivery Details' : 'Back to Cart'}</span>
@@ -236,20 +240,22 @@ export const Screen7PaymentModal: React.FC = () => {
           <span>Encrypted Order Transmission to Kitchen Display</span>
         </div>
 
+        {/* Unified CTA Button */}
         <button
+          type="button"
           onClick={handleConfirmOrder}
           disabled={isProcessing || !isGcashValid}
-          className={`w-full py-4 font-bold rounded-full text-xs shadow-lg transition flex items-center justify-center gap-2 transform active:scale-98 ${
+          className={`w-full py-3.5 px-6 font-bold rounded-2xl text-sm sm:text-base shadow-md transition flex items-center justify-center gap-2 transform active:scale-98 ${
             !isGcashValid
-              ? 'bg-neutral-300 text-neutral-500 cursor-not-allowed shadow-none'
-              : 'bg-[#5C4033] hover:bg-[#4A3328] text-[#FDFBF7] shadow-[#5C4033]/20'
+              ? 'bg-[#D8C7BA] text-white/90 cursor-not-allowed shadow-none'
+              : 'bg-[#5C3D2E] hover:bg-[#4A2F22] active:bg-[#3D261B] text-white cursor-pointer shadow-md'
           }`}
         >
           {isProcessing ? (
             <span>Transmitting Order...</span>
           ) : (
             <>
-              <CheckCircle2 className="w-4 h-4" />
+              <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
               <span>
                 {!isGcashValid && paymentMethod === 'online'
                   ? 'Enter Reference Number to Place Order'

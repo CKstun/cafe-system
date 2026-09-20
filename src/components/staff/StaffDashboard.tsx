@@ -20,6 +20,8 @@ import {
   ChevronUp,
   Bell,
   Check,
+  LogOut,
+  User,
 } from 'lucide-react';
 import { OrderStatus } from '../../types/cafe';
 
@@ -36,6 +38,8 @@ export const StaffDashboard: React.FC = () => {
     soundEnabled,
     setSoundEnabled,
     triggerTestEchoBroadcast,
+    staffSession,
+    logoutStaff,
   } = useCafe();
 
   const [activeTab, setActiveTab] = useState<'active' | 'pending' | 'preparing' | 'ready' | 'completed' | 'all'>('active');
@@ -79,35 +83,60 @@ export const StaffDashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#FDFBF7] text-[#2B231F] pb-16">
       {/* Top Banner */}
-      <div className="bg-[#F4EFEB] border-b border-[#E6DDD4] px-4 sm:px-8 py-5">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-[#F4EFEB] border-b border-[#E6DDD4] px-4 sm:px-8 py-4">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-[#5C4033] text-[#FDFBF7] flex items-center justify-center shadow-sm">
+            <div className="w-12 h-12 rounded-2xl bg-[#5C4033] text-[#FDFBF7] flex items-center justify-center shadow-sm shrink-0">
               <ChefHat className="w-6 h-6 text-[#FDFBF7]" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="font-display text-xl font-bold text-[#2B231F]">Barista Kitchen Display (KDS)</h1>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold border border-emerald-300">
                   Live Queue
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-mono font-bold border border-amber-300">
+                  role:staff
                 </span>
               </div>
               <p className="text-xs text-[#8C7A6B]">
-                Route incoming customer mobile tickets, confirm counter cash payments, and broadcast preparation stages.
+                Incoming mobile orders, counter cash verification, and preparation workflow.
               </p>
             </div>
           </div>
 
-          {/* Quick Search */}
-          <div className="relative w-full sm:w-64">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search token, customer..."
-              className="w-full pl-9 pr-4 py-2 bg-white border border-[#E6DDD4] rounded-full text-xs text-[#2B231F] focus:outline-none focus:ring-2 focus:ring-[#5C4033]"
-            />
-            <Search className="w-4 h-4 text-[#8C7A6B] absolute left-3 top-2.5" />
+          {/* Right controls: Staff User info, Search, and Logout */}
+          <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+            {/* Quick Search */}
+            <div className="relative flex-1 sm:w-56">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search token, customer..."
+                className="w-full min-h-[44px] pl-9 pr-4 py-2 bg-white border border-[#E6DDD4] rounded-xl text-xs text-[#2B231F] focus:outline-none focus:ring-2 focus:ring-[#5C4033]"
+              />
+              <Search className="w-4 h-4 text-[#8C7A6B] absolute left-3 top-3.5" />
+            </div>
+
+            {/* Staff User & Logout */}
+            <div className="flex items-center gap-2">
+              <div className="hidden lg:flex items-center gap-1.5 px-3 py-2 bg-white border border-[#E6DDD4] rounded-xl text-xs text-[#5C4033]">
+                <User className="w-3.5 h-3.5 text-[#8C7A6B]" />
+                <span className="font-semibold">{staffSession?.user.name || 'Barista Staff'}</span>
+              </div>
+
+              <button
+                type="button"
+                id="staff-logout-btn"
+                onClick={() => logoutStaff()}
+                className="min-h-[44px] px-3.5 py-2 bg-white hover:bg-rose-50 text-stone-700 hover:text-rose-700 border border-[#E6DDD4] hover:border-rose-300 font-bold rounded-xl text-xs flex items-center gap-2 transition-colors cursor-pointer shadow-xs"
+                title="Revoke Sanctum token & return to Staff Login"
+              >
+                <LogOut className="w-4 h-4 text-stone-500 hover:text-rose-600" />
+                <span>Logout</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

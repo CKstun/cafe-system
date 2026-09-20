@@ -357,10 +357,10 @@ export const Screen4ItemModal: React.FC<Screen4ItemModalProps> = ({ item, onClos
               <button
                 type="button"
                 onClick={handleAddToCart}
-                className="flex-1 py-3.5 px-5 bg-[#83502E] hover:bg-[#6F4224] text-white font-bold text-xs rounded-full shadow-md shadow-[#83502E]/25 transition flex items-center justify-between active:scale-98"
+                className="flex-1 py-3.5 px-5 bg-[#5C3D2E] hover:bg-[#4A2F22] active:bg-[#3D261B] text-white font-bold text-sm rounded-2xl shadow-md transition flex items-center justify-between active:scale-98 cursor-pointer"
               >
                 <span>Add to Order</span>
-                <span>₱{totalPrice.toFixed(2)}</span>
+                <span className="font-mono">₱{totalPrice.toFixed(2)}</span>
               </button>
             </div>
           </div>

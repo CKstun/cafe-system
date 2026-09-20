@@ -9,6 +9,7 @@ export const ScreenDeliveryDetails: React.FC = () => {
     deliveryDetails,
     setDeliveryDetails,
     setCustomerScreen,
+    navigate,
   } = useCafe();
 
   const [address, setAddress] = useState(deliveryDetails?.address || '');
@@ -41,6 +42,7 @@ export const ScreenDeliveryDetails: React.FC = () => {
 
     // Advance to Payment Screen (Screen 7)
     setCustomerScreen(7);
+    navigate('/checkout');
   };
 
   return (
@@ -49,8 +51,11 @@ export const ScreenDeliveryDetails: React.FC = () => {
         {/* Top Back Navigation */}
         <button
           type="button"
-          onClick={() => setCustomerScreen(6)}
-          className="inline-flex items-center gap-1 text-xs font-semibold text-[#8C7A6B] hover:text-[#5A3825] mb-4 transition"
+          onClick={() => {
+            setCustomerScreen(6);
+            navigate('/cart');
+          }}
+          className="inline-flex items-center gap-1 text-xs font-semibold text-[#8C7A6B] hover:text-[#5C3D2E] mb-4 transition cursor-pointer"
         >
           <ChevronLeft className="w-4 h-4" />
           <span>Back to Cart</span>
@@ -159,15 +164,15 @@ export const ScreenDeliveryDetails: React.FC = () => {
           </div>
         </div>
 
-        {/* Continue to Payment Button */}
+        {/* Continue to Payment Button (Unified CTA Button) */}
         <button
           type="button"
           disabled={!isFormValid}
           onClick={handleContinue}
-          className={`w-full mt-4 py-3.5 sm:py-4 rounded-full text-xs font-bold transition duration-200 flex items-center justify-center shadow-xs ${
+          className={`w-full mt-4 py-3.5 px-6 rounded-2xl text-sm font-bold transition duration-200 flex items-center justify-center shadow-md ${
             isFormValid
-              ? 'bg-[#5A3825] hover:bg-[#432717] text-white cursor-pointer active:scale-98 shadow-md'
-              : 'bg-[#D8C7BA] text-white/90 cursor-not-allowed'
+              ? 'bg-[#5C3D2E] hover:bg-[#4A2F22] active:bg-[#3D261B] text-white cursor-pointer active:scale-98'
+              : 'bg-[#D8C7BA] text-white/90 cursor-not-allowed shadow-none'
           }`}
         >
           Continue to Payment

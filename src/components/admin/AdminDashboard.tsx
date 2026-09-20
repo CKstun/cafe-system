@@ -17,8 +17,12 @@ import {
   ArrowUpRight,
   Sparkles,
   KeyRound,
+  LogOut,
+  Menu,
+  X,
+  User,
 } from 'lucide-react';
-import { User, MenuItem, Role } from '../../types/cafe';
+import { User as UserType, MenuItem, Role } from '../../types/cafe';
 import { SpatieRolesTab } from './SpatieRolesTab';
 
 export const AdminDashboard: React.FC = () => {
@@ -37,9 +41,25 @@ export const AdminDashboard: React.FC = () => {
     toggleMenuItemAvailability,
     restockUnit,
     restockMenuItem,
+    adminSession,
+    logoutAdmin,
+    currentPath,
+    navigate,
   } = useCafe();
 
-  const [activeTab, setActiveTab] = useState<'analytics' | 'staff' | 'roles' | 'products' | 'inventory'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'staff' | 'roles' | 'products' | 'inventory'>(() => {
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname;
+      if (path.includes('inventory')) return 'inventory';
+      if (path.includes('products') || path.includes('categories')) return 'products';
+      if (path.includes('staff')) return 'staff';
+      if (path.includes('roles')) return 'roles';
+      if (path.includes('analytics')) return 'analytics';
+    }
+    return 'analytics';
+  });
+
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   // Analytics Date Filter
   const [dateRange, setDateRange] = useState<'today' | '7days' | '30days' | 'all'>('all');
@@ -141,7 +161,7 @@ export const AdminDashboard: React.FC = () => {
     setEditingStaffId(null);
   };
 
-  const handleOpenStaffEdit = (staff: User) => {
+  const handleOpenStaffEdit = (staff: UserType) => {
     setEditingStaffId(staff.id);
     setStaffName(staff.name);
     setStaffEmail(staff.email);
@@ -203,38 +223,147 @@ export const AdminDashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#FDFBF7] text-[#2B231F] pb-16">
       {/* Top Banner */}
-      <div className="bg-[#F4EFEB] border-b border-[#E6DDD4] px-4 sm:px-8 py-5">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-[#F4EFEB] border-b border-[#E6DDD4] px-4 sm:px-8 py-4">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-[#5C4033] text-[#FDFBF7] flex items-center justify-center shadow-sm">
+            {/* iPad/Tablet Collapsible Menu Toggle */}
+            <button
+              type="button"
+              id="admin-drawer-toggle"
+              onClick={() => setIsDrawerOpen(!isDrawerOpen)}
+              className="lg:hidden min-h-[44px] min-w-[44px] p-2.5 rounded-xl bg-white border border-[#E6DDD4] text-[#5C4033] hover:bg-[#EFE8E1] transition-colors flex items-center justify-center cursor-pointer shadow-xs"
+              aria-label="Toggle Navigation Drawer"
+            >
+              {isDrawerOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+
+            <div className="w-12 h-12 rounded-2xl bg-[#5C4033] text-[#FDFBF7] flex items-center justify-center shadow-sm shrink-0">
               <ShieldCheck className="w-6 h-6 text-[#FDFBF7]" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="font-display text-xl font-bold text-[#2B231F]">Administrator Control Panel</h1>
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#5C4033] text-[#FDFBF7] font-bold">
                   Owner Portal
                 </span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-100 text-rose-900 font-mono font-bold border border-rose-300">
+                  role:admin
+                </span>
               </div>
               <p className="text-xs text-[#8C7A6B]">
-                Staff credential CRUD, product catalog management, bottleneck unit inventory, and sales analytics.
+                Staff credentials CRUD, product catalog, bottleneck inventory, and sales analytics.
               </p>
             </div>
           </div>
 
-          {/* Low Stock Warning Indicator */}
-          {(lowStockBottlenecks.length > 0 || lowStockMenuItems.length > 0) && (
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold">
-              <AlertTriangle className="w-4 h-4 text-rose-600" />
-              <span>{lowStockBottlenecks.length + lowStockMenuItems.length} Items Below Threshold</span>
+          {/* Top Actions: Low stock alert, Admin profile, Logout */}
+          <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+            {/* Low Stock Warning Indicator */}
+            {(lowStockBottlenecks.length > 0 || lowStockMenuItems.length > 0) && (
+              <div className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold">
+                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>{lowStockBottlenecks.length + lowStockMenuItems.length} Alert</span>
+              </div>
+            )}
+
+            {/* Admin identity */}
+            <div className="hidden sm:flex items-center gap-2 px-3 py-2 bg-white border border-[#E6DDD4] rounded-xl text-xs text-[#5C4033]">
+              <User className="w-3.5 h-3.5 text-[#8C7A6B]" />
+              <span className="font-semibold">{adminSession?.user.name || 'Store Owner'}</span>
             </div>
-          )}
+
+            {/* Prominent Admin Logout Button */}
+            <button
+              type="button"
+              id="admin-logout-btn"
+              onClick={() => logoutAdmin()}
+              className="min-h-[44px] px-3.5 py-2 bg-rose-50 hover:bg-rose-100 active:bg-rose-200 text-rose-800 border border-rose-300 font-bold rounded-xl text-xs flex items-center gap-2 transition-colors cursor-pointer shadow-xs"
+              title="Revoke Sanctum token and return to Admin Login"
+            >
+              <LogOut className="w-4 h-4 text-rose-600" />
+              <span>Admin Logout</span>
+            </button>
+          </div>
         </div>
       </div>
 
+      {/* iPad / Tablet Slide-out Drawer Overlay */}
+      {isDrawerOpen && (
+        <div className="lg:hidden fixed inset-0 z-40 flex">
+          <div
+            className="fixed inset-0 bg-stone-900/60 backdrop-blur-xs transition-opacity"
+            onClick={() => setIsDrawerOpen(false)}
+          />
+          <div className="relative w-72 max-w-[80vw] bg-[#FDFBF7] h-full shadow-2xl p-5 flex flex-col justify-between border-r border-[#E6DDD4] z-50 animate-in slide-in-from-left duration-200">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-[#EFE8E1]">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-[#5C4033]" />
+                  <span className="font-bold text-sm text-[#2B231F]">Admin Navigation</span>
+                </div>
+                <button
+                  onClick={() => setIsDrawerOpen(false)}
+                  className="p-2 text-stone-500 hover:text-stone-800 rounded-lg"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-1.5">
+                {[
+                  { id: 'analytics', label: 'Sales Reports & Analytics', icon: TrendingUp },
+                  { id: 'staff', label: 'Staff Accounts CRUD', icon: Users },
+                  { id: 'roles', label: 'Roles & Permissions (Spatie)', icon: KeyRound },
+                  { id: 'products', label: 'Menu Catalog Management', icon: Coffee },
+                  { id: 'inventory', label: 'Unit Bottlenecks & Logs', icon: Package },
+                ].map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => {
+                        setActiveTab(tab.id as any);
+                        navigate(`/admin/${tab.id}`);
+                        setIsDrawerOpen(false);
+                      }}
+                      className={`w-full min-h-[44px] flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-left transition-colors ${
+                        isActive
+                          ? 'bg-[#5C4033] text-[#FDFBF7] shadow-sm'
+                          : 'bg-white hover:bg-[#EFE8E1] text-[#736357] border border-[#E6DDD4]/60'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4 shrink-0" />
+                      <span>{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-[#EFE8E1] space-y-2">
+              <div className="text-[11px] text-[#8C7A6B]">
+                Logged in as <strong className="text-[#2B231F]">{adminSession?.user.name || 'Admin'}</strong>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsDrawerOpen(false);
+                  logoutAdmin();
+                }}
+                className="w-full min-h-[44px] py-2.5 px-3 bg-rose-50 hover:bg-rose-100 text-rose-800 font-bold rounded-xl text-xs flex items-center justify-center gap-2 border border-rose-300"
+              >
+                <LogOut className="w-4 h-4 text-rose-600" />
+                <span>Logout Session</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto px-4 sm:px-8 pt-6">
-        {/* Navigation Tabs */}
-        <div className="flex items-center gap-2 border-b border-[#EFE8E1] pb-3 overflow-x-auto">
+        {/* Navigation Tabs (Desktop / iPad Landscape) */}
+        <div className="flex items-center gap-2 border-b border-[#EFE8E1] pb-3 overflow-x-auto no-scrollbar">
           {[
             { id: 'analytics', label: 'Sales Reports & Analytics', icon: TrendingUp },
             { id: 'staff', label: 'Staff Accounts CRUD', icon: Users },
@@ -247,8 +376,11 @@ export const AdminDashboard: React.FC = () => {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition ${
+                onClick={() => {
+                  setActiveTab(tab.id as any);
+                  navigate(`/admin/${tab.id}`);
+                }}
+                className={`min-h-[44px] flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
                   isActive
                     ? 'bg-[#5C4033] text-[#FDFBF7] shadow-sm'
                     : 'bg-[#F4EFEB] text-[#736357] hover:bg-[#E6DDD4]'
@@ -781,7 +913,7 @@ export const AdminDashboard: React.FC = () => {
                   value={staffName}
                   onChange={(e) => setStaffName(e.target.value)}
                   placeholder="e.g. Maria Santos"
-                  className="w-full px-4 py-2.5 bg-[#F4EFEB] border border-[#E6DDD4] rounded-xl text-xs focus:outline-none"
+                  className="w-full min-h-[44px] px-4 py-2.5 bg-[#F4EFEB] border border-[#E6DDD4] rounded-xl text-base sm:text-xs focus:outline-none focus:ring-2 focus:ring-[#5C4033]"
                 />
               </div>
               <div>
@@ -791,7 +923,7 @@ export const AdminDashboard: React.FC = () => {
                   value={staffEmail}
                   onChange={(e) => setStaffEmail(e.target.value)}
                   placeholder="staff@cafepita.com"
-                  className="w-full px-4 py-2.5 bg-[#F4EFEB] border border-[#E6DDD4] rounded-xl text-xs focus:outline-none"
+                  className="w-full min-h-[44px] px-4 py-2.5 bg-[#F4EFEB] border border-[#E6DDD4] rounded-xl text-base sm:text-xs focus:outline-none focus:ring-2 focus:ring-[#5C4033]"
                 />
               </div>
               <div>
@@ -799,7 +931,7 @@ export const AdminDashboard: React.FC = () => {
                 <select
                   value={staffRole}
                   onChange={(e) => setStaffRole(e.target.value as any)}
-                  className="w-full px-4 py-2.5 bg-[#F4EFEB] border border-[#E6DDD4] rounded-xl text-xs focus:outline-none"
+                  className="w-full min-h-[44px] px-4 py-2.5 bg-[#F4EFEB] border border-[#E6DDD4] rounded-xl text-base sm:text-xs focus:outline-none focus:ring-2 focus:ring-[#5C4033]"
                 >
                   <option value="staff">Staff (Kitchen / Barista KDS)</option>
                   <option value="admin">Administrator (Full Access)</option>
@@ -809,13 +941,13 @@ export const AdminDashboard: React.FC = () => {
             <div className="mt-6 flex gap-2">
               <button
                 onClick={() => setShowStaffModal(false)}
-                className="flex-1 py-3 bg-[#EFE8E1] text-[#736357] font-bold text-xs rounded-full"
+                className="flex-1 min-h-[44px] py-2.5 bg-[#EFE8E1] text-[#736357] font-bold text-xs rounded-xl hover:bg-[#E6DDD4] transition"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSaveStaff}
-                className="flex-1 py-3 bg-[#5C4033] text-[#FDFBF7] font-bold text-xs rounded-full shadow hover:bg-[#4A3328]"
+                className="flex-1 min-h-[44px] py-2.5 bg-[#5C4033] text-[#FDFBF7] font-bold text-xs rounded-xl shadow hover:bg-[#4A3328] transition"
               >
                 Save Profile
               </button>
@@ -841,7 +973,7 @@ export const AdminDashboard: React.FC = () => {
                   type="number"
                   value={restockQty}
                   onChange={(e) => setRestockQty(parseInt(e.target.value) || 0)}
-                  className="w-full px-4 py-2.5 bg-[#F4EFEB] border border-[#E6DDD4] rounded-xl text-xs font-mono font-bold"
+                  className="w-full min-h-[44px] px-4 py-2.5 bg-[#F4EFEB] border border-[#E6DDD4] rounded-xl text-base sm:text-xs font-mono font-bold focus:outline-none focus:ring-2 focus:ring-[#5C4033]"
                 />
               </div>
               <div>
@@ -851,20 +983,20 @@ export const AdminDashboard: React.FC = () => {
                   value={restockNotes}
                   onChange={(e) => setRestockNotes(e.target.value)}
                   placeholder="e.g. Supplier Batch #4092"
-                  className="w-full px-4 py-2.5 bg-[#F4EFEB] border border-[#E6DDD4] rounded-xl text-xs"
+                  className="w-full min-h-[44px] px-4 py-2.5 bg-[#F4EFEB] border border-[#E6DDD4] rounded-xl text-base sm:text-xs focus:outline-none focus:ring-2 focus:ring-[#5C4033]"
                 />
               </div>
             </div>
             <div className="mt-6 flex gap-2">
               <button
                 onClick={() => setShowRestockModal(false)}
-                className="flex-1 py-3 bg-[#EFE8E1] text-[#736357] font-bold text-xs rounded-full"
+                className="flex-1 min-h-[44px] py-2.5 bg-[#EFE8E1] text-[#736357] font-bold text-xs rounded-xl hover:bg-[#E6DDD4] transition"
               >
                 Cancel
               </button>
               <button
                 onClick={handleExecuteRestock}
-                className="flex-1 py-3 bg-[#5C4033] text-[#FDFBF7] font-bold text-xs rounded-full shadow hover:bg-[#4A3328]"
+                className="flex-1 min-h-[44px] py-2.5 bg-[#5C4033] text-[#FDFBF7] font-bold text-xs rounded-xl shadow hover:bg-[#4A3328] transition"
               >
                 Confirm Restock
               </button>
@@ -887,7 +1019,7 @@ export const AdminDashboard: React.FC = () => {
                   type="text"
                   value={productName}
                   onChange={(e) => setProductName(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-[#F4EFEB] border rounded-xl text-xs"
+                  className="w-full min-h-[44px] px-4 py-2.5 bg-[#F4EFEB] border border-[#E6DDD4] rounded-xl text-base sm:text-xs focus:outline-none focus:ring-2 focus:ring-[#5C4033]"
                 />
               </div>
               <div>
@@ -895,7 +1027,7 @@ export const AdminDashboard: React.FC = () => {
                 <select
                   value={productCategory}
                   onChange={(e) => setProductCategory(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-[#F4EFEB] border rounded-xl text-xs"
+                  className="w-full min-h-[44px] px-4 py-2.5 bg-[#F4EFEB] border border-[#E6DDD4] rounded-xl text-base sm:text-xs focus:outline-none focus:ring-2 focus:ring-[#5C4033]"
                 >
                   <option value="Signature Blend">Signature Blend</option>
                   <option value="Classic Blend">Classic Blend</option>
@@ -914,7 +1046,7 @@ export const AdminDashboard: React.FC = () => {
                   type="number"
                   value={productPrice}
                   onChange={(e) => setProductPrice(parseFloat(e.target.value) || 0)}
-                  className="w-full px-4 py-2.5 bg-[#F4EFEB] border rounded-xl text-xs font-mono font-bold"
+                  className="w-full min-h-[44px] px-4 py-2.5 bg-[#F4EFEB] border border-[#E6DDD4] rounded-xl text-base sm:text-xs font-mono font-bold focus:outline-none focus:ring-2 focus:ring-[#5C4033]"
                 />
               </div>
               <div>
@@ -923,7 +1055,7 @@ export const AdminDashboard: React.FC = () => {
                   type="number"
                   value={productStock}
                   onChange={(e) => setProductStock(parseInt(e.target.value) || 0)}
-                  className="w-full px-4 py-2.5 bg-[#F4EFEB] border rounded-xl text-xs font-mono"
+                  className="w-full min-h-[44px] px-4 py-2.5 bg-[#F4EFEB] border border-[#E6DDD4] rounded-xl text-base sm:text-xs font-mono focus:outline-none focus:ring-2 focus:ring-[#5C4033]"
                 />
               </div>
               <div>
@@ -932,20 +1064,20 @@ export const AdminDashboard: React.FC = () => {
                   value={productDesc}
                   onChange={(e) => setProductDesc(e.target.value)}
                   rows={2}
-                  className="w-full px-4 py-2.5 bg-[#F4EFEB] border rounded-xl text-xs"
+                  className="w-full px-4 py-2.5 bg-[#F4EFEB] border border-[#E6DDD4] rounded-xl text-base sm:text-xs focus:outline-none focus:ring-2 focus:ring-[#5C4033]"
                 />
               </div>
             </div>
             <div className="mt-6 flex gap-2">
               <button
                 onClick={() => setShowProductModal(false)}
-                className="flex-1 py-3 bg-[#EFE8E1] text-[#736357] font-bold text-xs rounded-full"
+                className="flex-1 min-h-[44px] py-2.5 bg-[#EFE8E1] text-[#736357] font-bold text-xs rounded-xl hover:bg-[#E6DDD4] transition"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSaveProduct}
-                className="flex-1 py-3 bg-[#5C4033] text-[#FDFBF7] font-bold text-xs rounded-full shadow hover:bg-[#4A3328]"
+                className="flex-1 min-h-[44px] py-2.5 bg-[#5C4033] text-[#FDFBF7] font-bold text-xs rounded-xl shadow hover:bg-[#4A3328] transition"
               >
                 Save Product
               </button>

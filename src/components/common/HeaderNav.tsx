@@ -14,6 +14,7 @@ import {
   VolumeX,
   Bell,
   UserCheck,
+  Clock,
 } from 'lucide-react';
 import { Role } from '../../types/cafe';
 
@@ -33,6 +34,7 @@ export const HeaderNav: React.FC = () => {
     setSoundEnabled,
     triggerTestEchoBroadcast,
     resetToSeederData,
+    activeTrackingToken,
   } = useCafe();
 
   const activeOrdersCount = orders.filter((o) =>
@@ -131,6 +133,26 @@ export const HeaderNav: React.FC = () => {
               <QrCode className="w-4 h-4" />
               <span className="hidden sm:inline">QR Tables</span>
             </button>
+
+            {/* Header Track Order Button */}
+            {activeTrackingToken && (
+              <button
+                onClick={() => {
+                  navigateWithRoleCheck('customer');
+                  setCustomerScreen(8);
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition cursor-pointer ${
+                  viewMode === 'customer' && customerScreen === 8
+                    ? 'bg-[#5C4033] text-[#FDFBF7] shadow ring-1 ring-amber-400/50'
+                    : 'bg-[#1F1A17] text-amber-300 hover:text-[#FDFBF7] hover:bg-[#3E332D] border border-amber-500/40'
+                }`}
+                title="Track Active Order"
+              >
+                <Clock className="w-3.5 h-3.5 text-amber-300" />
+                <span>Track</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+              </button>
+            )}
           </nav>
 
           {/* Quick Controls: RBAC Switcher, Echo Status, Sound Toggle, Reset */}

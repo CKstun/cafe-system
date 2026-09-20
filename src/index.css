@@ -41,3 +41,51 @@
   height: 0px;
 }
 
+/* 
+  Adaptive Category Scrollbar:
+  - Mobile & Tablet (< 1024px / Touch screens):
+    Completely hidden scrollbar, retaining smooth touch swipe/flick gestures.
+  - Desktop PC & Laptops (>= 1024px / Mouse screens):
+    Visible, elegantly styled scrollbar track for clear visual indicator & mouse dragging.
+*/
+.category-scrollbar {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+@media (max-width: 1023px) {
+  .category-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .category-scrollbar::-webkit-scrollbar {
+    display: none !important;
+    width: 0px !important;
+    height: 0px !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .category-scrollbar {
+    -ms-overflow-style: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #8C705F #EADBCE;
+  }
+  .category-scrollbar::-webkit-scrollbar {
+    display: block !important;
+    height: 6px;
+  }
+  .category-scrollbar::-webkit-scrollbar-track {
+    background: #EADBCE;
+    border-radius: 9999px;
+  }
+  .category-scrollbar::-webkit-scrollbar-thumb {
+    background: #8C705F;
+    border-radius: 9999px;
+    border: 1px solid #EADBCE;
+  }
+  .category-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #5C3D2E;
+  }
+}
+

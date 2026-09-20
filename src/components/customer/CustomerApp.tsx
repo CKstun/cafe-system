@@ -51,9 +51,9 @@ export const CustomerApp: React.FC = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-64px)] bg-[#F4ECE1] text-[#3B2215] flex flex-col items-center">
+    <div className="min-h-screen bg-[#F4ECE1] text-[#3B2215] flex flex-col items-center">
       {/* Clean, responsive application container without phone mockup frame */}
-      <div className="w-full max-w-2xl min-h-[calc(100vh-64px)] flex flex-col bg-[#F4ECE1] sm:shadow-sm sm:border-x sm:border-[#EADBCE]/70">
+      <div className="w-full max-w-2xl min-h-screen flex flex-col bg-[#F4ECE1] sm:shadow-sm sm:border-x sm:border-[#EADBCE]/70">
         {renderScreen()}
 
         {/* Modal Overlay for Item Customization when active on screen 3 */}

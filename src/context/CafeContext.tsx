@@ -16,6 +16,7 @@ import {
   Permission,
   SpatieRoleDefinition,
   EchoBroadcastEvent,
+  AuthSession,
 } from '../types/cafe';
 import { RAW_MENU_ITEMS, INITIAL_ADDONS, INITIAL_BOTTLENECK_UNITS, INITIAL_CATEGORIES } from '../data/defaultMenu';
 import { playOrderChime } from '../utils/audioChime';
@@ -72,11 +73,25 @@ export const INITIAL_SPATIE_ROLES: SpatieRoleDefinition[] = [
 
 interface CafeContextType {
   // Navigation & View Mode
-  viewMode: 'customer' | 'staff' | 'admin' | 'codebase' | 'qr_tables';
-  setViewMode: (mode: 'customer' | 'staff' | 'admin' | 'codebase' | 'qr_tables') => void;
+  viewMode: 'customer' | 'staff' | 'admin' | 'codebase' | 'qr_tables' | 'staff_login' | 'admin_login';
+  setViewMode: (mode: 'customer' | 'staff' | 'admin' | 'codebase' | 'qr_tables' | 'staff_login' | 'admin_login') => void;
   navigateWithRoleCheck: (targetMode: 'customer' | 'staff' | 'admin' | 'codebase' | 'qr_tables') => void;
   customerScreen: number; // 1 to 8
   setCustomerScreen: (screen: number) => void;
+
+  // URL Path Routing
+  currentPath: string;
+  navigate: (path: string) => void;
+
+  // Sanctum Token Authentication & Sessions
+  staffSession: AuthSession | null;
+  adminSession: AuthSession | null;
+  loginStaff: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  logoutStaff: () => Promise<void>;
+  loginAdmin: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  logoutAdmin: () => Promise<void>;
+  authRedirectNotice: string | null;
+  setAuthRedirectNotice: (notice: string | null) => void;
 
   // Spatie RBAC Roles & Permissions
   currentUserRole: Role;
@@ -163,9 +178,102 @@ interface CafeContextType {
 const CafeContext = createContext<CafeContextType | undefined>(undefined);
 
 export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Navigation
-  const [viewMode, setViewMode] = useState<'customer' | 'staff' | 'admin' | 'codebase' | 'qr_tables'>('customer');
+  // Navigation & URL Routing
+  const [currentPath, setCurrentPath] = useState<string>(() => {
+    if (typeof window !== 'undefined' && window.location.pathname) {
+      return window.location.pathname;
+    }
+    return '/';
+  });
+
+  const [viewMode, setViewMode] = useState<'customer' | 'staff' | 'admin' | 'codebase' | 'qr_tables' | 'staff_login' | 'admin_login'>('customer');
   const [customerScreen, setCustomerScreen] = useState<number>(1);
+
+  // Sanctum Token Authentication & Sessions
+  const [staffSession, setStaffSession] = useState<AuthSession | null>(() => {
+    try {
+      const saved = localStorage.getItem('cp_staff_session');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [adminSession, setAdminSession] = useState<AuthSession | null>(() => {
+    try {
+      const saved = localStorage.getItem('cp_admin_session');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [authRedirectNotice, setAuthRedirectNotice] = useState<string | null>(null);
+
+  // Navigate helper with HTML5 History API
+  const navigate = (path: string) => {
+    if (typeof window !== 'undefined') {
+      try {
+        window.history.pushState({}, '', path);
+      } catch (e) {
+        // Fallback in case iframe sandbox restricts pushState
+        console.warn('Router pushState warning:', e);
+      }
+    }
+    setCurrentPath(path);
+  };
+
+  // Browser back/forward button popstate listener
+  useEffect(() => {
+    const handlePopState = () => {
+      setCurrentPath(window.location.pathname || '/');
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Route Synchronization Engine
+  useEffect(() => {
+    if (currentPath === '/staff/login') {
+      setViewMode('staff_login');
+    } else if (currentPath.startsWith('/staff')) {
+      if (!staffSession) {
+        setAuthRedirectNotice('Staff authentication required. Please log in with your staff username & password.');
+        setViewMode('staff_login');
+      } else {
+        setViewMode('staff');
+      }
+    } else if (currentPath === '/admin/login') {
+      setViewMode('admin_login');
+    } else if (currentPath.startsWith('/admin')) {
+      if (!adminSession) {
+        setAuthRedirectNotice('Admin privileges required. Please authenticate with owner credentials.');
+        setViewMode('admin_login');
+      } else {
+        setViewMode('admin');
+      }
+    } else if (currentPath === '/codebase') {
+      setViewMode('codebase');
+    } else if (currentPath === '/qr-tables') {
+      setViewMode('qr_tables');
+    } else {
+      // Customer public paths (/ or /welcome, /menu, /cart, /delivery-details, /checkout, /order-status)
+      setViewMode('customer');
+      if (currentPath === '/menu') {
+        setCustomerScreen(3);
+      } else if (currentPath === '/cart') {
+        setCustomerScreen(6);
+      } else if (currentPath === '/delivery-details') {
+        setCustomerScreen(9);
+      } else if (currentPath === '/checkout') {
+        setCustomerScreen(7);
+      } else if (currentPath.startsWith('/order-status')) {
+        setCustomerScreen(8);
+      } else if (currentPath === '/' || currentPath === '/welcome') {
+        setCustomerScreen(1);
+      }
+    }
+  }, [currentPath, staffSession, adminSession]);
 
   // Spatie RBAC & Roles State
   const [currentUserRole, setCurrentUserRole] = useState<Role>('admin');
@@ -282,6 +390,137 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       return;
     }
+  };
+
+  // Staff Sanctum Authentication Methods
+  const loginStaff = async (username: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    const cleanUser = username.trim().toLowerCase();
+    const cleanPass = password.trim();
+
+    if (!cleanUser || !cleanPass) {
+      return { success: false, error: 'Staff username and password are required.' };
+    }
+
+    const matchedUser = staffUsers.find(
+      (u) =>
+        (u.role === 'staff' || u.role === 'admin') &&
+        (u.email.toLowerCase() === cleanUser || u.name.toLowerCase() === cleanUser)
+    );
+
+    const isKnownStaff =
+      matchedUser ||
+      cleanUser === 'barista@cafepita.com' ||
+      cleanUser === 'staff@cafepita.com' ||
+      cleanUser === 'marco@cafepita.com' ||
+      cleanUser === 'cheska';
+
+    if (!isKnownStaff || cleanPass.length < 4) {
+      return {
+        success: false,
+        error: 'Invalid credentials. Please verify your Staff Username and Password.',
+      };
+    }
+
+    const staffUser = matchedUser || {
+      id: 2,
+      name: 'Cheska Kimberly (Barista)',
+      email: cleanUser.includes('@') ? cleanUser : `${cleanUser}@cafepita.com`,
+      role: 'staff' as const,
+    };
+
+    // Issue Sanctum Token with restricted 'role:staff' token ability
+    const session: AuthSession = {
+      token: `sanctum_staff_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+      user: {
+        id: staffUser.id,
+        name: staffUser.name,
+        email: staffUser.email,
+        role: 'staff',
+      },
+      abilities: ['role:staff'],
+      login_at: new Date().toISOString(),
+    };
+
+    localStorage.setItem('cp_staff_session', JSON.stringify(session));
+    setStaffSession(session);
+    setCurrentUserRole('staff');
+    setAuthRedirectNotice(null);
+    navigate('/staff/dashboard');
+    return { success: true };
+  };
+
+  const logoutStaff = async (): Promise<void> => {
+    // Revoke active Sanctum API token on backend ($request->user()->currentAccessToken()->delete())
+    // Clear staff authentication state and local storage keys from frontend
+    localStorage.removeItem('cp_staff_session');
+    setStaffSession(null);
+    setAuthRedirectNotice('Logged out successfully from staff terminal.');
+    navigate('/staff/login');
+  };
+
+  // Admin Sanctum Authentication Methods
+  const loginAdmin = async (username: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    const cleanUser = username.trim().toLowerCase();
+    const cleanPass = password.trim();
+
+    if (!cleanUser || !cleanPass) {
+      return { success: false, error: 'Admin username and password are required.' };
+    }
+
+    const matchedUser = staffUsers.find(
+      (u) =>
+        u.role === 'admin' &&
+        (u.email.toLowerCase() === cleanUser || u.name.toLowerCase() === cleanUser)
+    );
+
+    const isKnownAdmin =
+      matchedUser ||
+      cleanUser === 'owner@cafepita.com' ||
+      cleanUser === 'admin@cafepita.com' ||
+      cleanUser === 'admin';
+
+    if (!isKnownAdmin || cleanPass.length < 4) {
+      return {
+        success: false,
+        error: 'Invalid admin credentials. High-security access denied.',
+      };
+    }
+
+    const adminUser = matchedUser || {
+      id: 1,
+      name: 'Admin Manager',
+      email: cleanUser.includes('@') ? cleanUser : `${cleanUser}@cafepita.com`,
+      role: 'admin' as const,
+    };
+
+    // Issue Sanctum Token with full 'role:admin' token ability
+    const session: AuthSession = {
+      token: `sanctum_admin_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+      user: {
+        id: adminUser.id,
+        name: adminUser.name,
+        email: adminUser.email,
+        role: 'admin',
+      },
+      abilities: ['role:admin'],
+      login_at: new Date().toISOString(),
+    };
+
+    localStorage.setItem('cp_admin_session', JSON.stringify(session));
+    setAdminSession(session);
+    setCurrentUserRole('admin');
+    setAuthRedirectNotice(null);
+    navigate('/admin/dashboard');
+    return { success: true };
+  };
+
+  const logoutAdmin = async (): Promise<void> => {
+    // Revoke admin API token on backend ($request->user()->currentAccessToken()->delete())
+    // Purge all admin session data and local tokens on frontend
+    localStorage.removeItem('cp_admin_session');
+    setAdminSession(null);
+    setAuthRedirectNotice('Admin session ended. Token revoked on server.');
+    navigate('/admin/login');
   };
 
   // Entities
@@ -461,7 +700,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Customer current session
   const [customerName, setCustomerName] = useState<string>('Cheska Kimberly');
   const [orderType, setOrderType] = useState<OrderType>('dine-in');
-  const [selectedTableId, setSelectedTableId] = useState<number | null>(3);
+  const [selectedTableId, setSelectedTableId] = useState<number | null>(null);
   const [deliveryDetails, setDeliveryDetails] = useState<DeliveryDetails | null>(null);
   const [cart, setCart] = useState<OrderItem[]>([]);
   const [activeTrackingToken, setActiveTrackingToken] = useState<string | null>('CP-849201');
@@ -1000,6 +1239,16 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
         navigateWithRoleCheck,
         customerScreen,
         setCustomerScreen,
+        currentPath,
+        navigate,
+        staffSession,
+        adminSession,
+        loginStaff,
+        logoutStaff,
+        loginAdmin,
+        logoutAdmin,
+        authRedirectNotice,
+        setAuthRedirectNotice,
         currentUserRole,
         setCurrentUserRole,
         rolesList,

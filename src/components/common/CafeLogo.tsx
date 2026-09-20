@@ -4,15 +4,22 @@ interface CafeLogoProps {
   className?: string;
   size?: number;
   showBorder?: boolean;
+  onClick?: () => void;
 }
 
 export const CafeLogo: React.FC<CafeLogoProps> = ({
   className = 'w-24 h-24',
   size = 140,
   showBorder = true,
+  onClick,
 }) => {
   return (
-    <div className={`relative inline-flex items-center justify-center select-none ${className}`}>
+    <div
+      onClick={onClick}
+      className={`relative inline-flex items-center justify-center select-none ${
+        onClick ? 'cursor-pointer' : ''
+      } ${className}`}
+    >
       <svg
         viewBox="0 0 300 300"
         width={size}

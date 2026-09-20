@@ -20,8 +20,8 @@ export const Screen8LiveTracker: React.FC = () => {
     orders,
     requestOrderCancellation,
     setCustomerScreen,
-    setViewMode,
     customerName,
+    navigate,
   } = useCafe();
 
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
@@ -51,14 +51,18 @@ export const Screen8LiveTracker: React.FC = () => {
   if (!currentOrder) {
     return (
       <div className="flex-1 min-h-[560px] p-6 flex flex-col items-center justify-center text-center bg-[#FDFBF7]">
-        <Coffee className="w-12 h-12 text-[#5C4033] mb-3 opacity-60" />
+        <Coffee className="w-12 h-12 text-[#5C3D2E] mb-3 opacity-60" />
         <h3 className="font-display text-lg font-bold text-[#2B231F]">No Active Order Found</h3>
         <p className="text-xs text-[#8C7A6B] mt-1 mb-6">
           You haven't placed an order yet in this session.
         </p>
         <button
-          onClick={() => setCustomerScreen(3)}
-          className="px-5 py-2.5 bg-[#5C4033] text-[#FDFBF7] font-semibold text-xs rounded-full"
+          type="button"
+          onClick={() => {
+            setCustomerScreen(3);
+            navigate('/menu');
+          }}
+          className="px-6 py-3.5 bg-[#5C3D2E] hover:bg-[#4A2F22] text-white font-bold text-xs rounded-2xl shadow-sm transition active:scale-98 cursor-pointer"
         >
           View Menu Catalog
         </button>
@@ -81,10 +85,14 @@ export const Screen8LiveTracker: React.FC = () => {
       {/* Top Bar: Back to Menu & Live Polling Status */}
       <div className="flex items-center justify-between text-xs text-[#8C7A6B] pb-1 border-b border-[#EFE8E1]">
         <button
-          onClick={() => setCustomerScreen(3)}
-          className="inline-flex items-center gap-1 font-semibold text-[#5C4033] hover:text-[#4A3328] transition"
+          type="button"
+          onClick={() => {
+            setCustomerScreen(3);
+            navigate('/menu');
+          }}
+          className="inline-flex items-center gap-1 font-semibold text-[#5C3D2E] hover:text-[#4A2F22] transition cursor-pointer"
         >
-          <ChevronLeft className="w-4 h-4" />
+          <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
           <span>Back to Menu</span>
         </button>
 
@@ -304,21 +312,6 @@ export const Screen8LiveTracker: React.FC = () => {
         </div>
       </div>
 
-      {/* Button: Order Another Item (Allows ordering while current order is preparing) */}
-      <div className="p-4 bg-[#FDFBF7] rounded-2xl border-2 border-dashed border-[#5C4033]/30 text-center space-y-2">
-        <p className="text-xs font-bold text-[#2B231F]">Craving something else?</p>
-        <p className="text-[11px] text-[#8C7A6B]">
-          You can order another item right now while your current order is being prepared.
-        </p>
-        <button
-          onClick={() => setCustomerScreen(3)}
-          className="w-full py-3 bg-[#5C4033] hover:bg-[#4A3328] text-[#FDFBF7] font-bold text-xs rounded-full shadow-md shadow-[#5C4033]/20 transition flex items-center justify-center gap-2 transform active:scale-98"
-        >
-          <PlusCircle className="w-4 h-4" />
-          <span>+ Order Another Item</span>
-        </button>
-      </div>
-
       {/* Order Item List */}
       <div className="p-4 bg-[#FDFBF7] rounded-2xl border border-[#EFE8E1] space-y-2">
         <h4 className="text-[11px] uppercase tracking-wider font-bold text-[#5C4033] mb-2">
@@ -352,46 +345,49 @@ export const Screen8LiveTracker: React.FC = () => {
         </div>
       </div>
 
-      {/* Cancellation Rules (Allowed ONLY while status is 'pending') */}
-      <div>
-        {isPending ? (
-          currentOrder.cancellation_requested ? (
-            <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-center space-y-1">
-              <p className="text-xs font-bold text-amber-800">
-                Cancellation Request Pending
-              </p>
-              <p className="text-[10px] text-amber-700">
-                Waiting for staff on the KDS terminal to confirm and approve.
-              </p>
+      {/* Bottom Actions Container: Order Another Item (Placed above Cancel Order) & Cancellation */}
+      <div className="space-y-3 pt-2">
+        {/* Primary CTA: Order Another Item */}
+        <button
+          type="button"
+          onClick={() => setCustomerScreen(3)}
+          className="w-full py-3.5 bg-[#5C4033] hover:bg-[#4A3328] text-[#FDFBF7] font-bold text-xs rounded-full shadow-md shadow-[#5C4033]/20 transition flex items-center justify-center gap-2 transform active:scale-98 cursor-pointer"
+        >
+          <PlusCircle className="w-4 h-4" />
+          <span>Order Another Item</span>
+        </button>
+
+        {/* Cancellation Rules (Allowed ONLY while status is 'pending') */}
+        <div>
+          {isPending ? (
+            currentOrder.cancellation_requested ? (
+              <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-center space-y-1">
+                <p className="text-xs font-bold text-amber-800">
+                  Cancellation Request Pending
+                </p>
+                <p className="text-[10px] text-amber-700">
+                  Waiting for staff on the KDS terminal to confirm and approve.
+                </p>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setCancelModalOpen(true)}
+                className="w-full py-3 bg-red-50 hover:bg-red-100 text-[#DC2626] font-bold text-xs rounded-full border border-red-200 transition cursor-pointer active:scale-98"
+              >
+                Cancel Order
+              </button>
+            )
+          ) : isCancelled ? (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-2xl text-center text-xs text-[#DC2626] font-semibold">
+              This order has been cancelled.
             </div>
           ) : (
-            <button
-              onClick={() => setCancelModalOpen(true)}
-              className="w-full py-3 bg-red-50 hover:bg-red-100 text-[#DC2626] font-bold text-xs rounded-full border border-red-200 transition"
-            >
-              Cancel Order
-            </button>
-          )
-        ) : isCancelled ? (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-2xl text-center text-xs text-[#DC2626] font-semibold">
-            This order has been cancelled.
-          </div>
-        ) : (
-          <div className="p-3 bg-[#F4EFEB] rounded-2xl border border-[#E6DDD4] text-center text-[11px] text-[#736357]">
-            Order is in preparation or ready and can no longer be cancelled.
-          </div>
-        )}
-      </div>
-
-      {/* Quick Staff Navigation Link to simulate staff actions */}
-      <div className="pt-2 flex justify-center gap-4 text-xs">
-        <button
-          onClick={() => setViewMode('staff')}
-          className="text-[#5C4033] underline font-semibold flex items-center gap-1"
-        >
-          <span>Switch to Staff KDS to progress this order</span>
-          <ArrowRight className="w-3.5 h-3.5" />
-        </button>
+            <div className="p-3 bg-[#F4EFEB] rounded-2xl border border-[#E6DDD4] text-center text-[11px] text-[#736357]">
+              Order is in preparation or ready and can no longer be cancelled.
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Cancellation Modal */}
