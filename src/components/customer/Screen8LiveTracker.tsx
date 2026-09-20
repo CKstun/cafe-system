@@ -173,7 +173,11 @@ export const Screen8LiveTracker: React.FC = () => {
         <div>
           <span className="text-[10px] text-[#8C7A6B] block">Dining Type</span>
           <span className="font-bold text-[#2B231F] uppercase">
-            {currentOrder.order_type === 'dine-in' ? 'Dine-in' : 'Take-out'}
+            {currentOrder.order_type === 'dine-in'
+              ? 'Dine-in'
+              : currentOrder.order_type === 'delivery'
+              ? 'Delivery'
+              : 'Take-out'}
           </span>
         </div>
         <div>
@@ -189,6 +193,29 @@ export const Screen8LiveTracker: React.FC = () => {
           </span>
         </div>
       </div>
+
+      {/* Delivery Details Card (if Delivery Order) */}
+      {currentOrder.order_type === 'delivery' && currentOrder.delivery_details && (
+        <div className="p-4 bg-[#F4EFEB] rounded-2xl border border-[#E6DDD4] text-xs">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C7465] block mb-1">
+            Delivery Destination
+          </span>
+          <p className="font-bold text-[#2B231F] text-xs leading-snug">
+            {currentOrder.delivery_details.address}
+          </p>
+          <p className="text-[11px] text-[#7A6253] mt-0.5">
+            {currentOrder.delivery_details.city_region} • {currentOrder.delivery_details.postal_code}
+          </p>
+          <p className="text-[11px] text-[#5C4033] font-semibold mt-1">
+            📞 {currentOrder.delivery_details.contact_number}
+          </p>
+          {currentOrder.delivery_details.driver_notes && (
+            <p className="text-[10px] italic text-[#8C7A6B] mt-1.5 bg-white/70 p-2 rounded-lg border border-[#E6DDD4]">
+              Note: "{currentOrder.delivery_details.driver_notes}"
+            </p>
+          )}
+        </div>
+      )}
 
       {/* VERTICAL PROGRESS PIPELINE */}
       <div className="p-5 bg-[#F4EFEB] rounded-3xl border border-[#E6DDD4] shadow-xs">

@@ -4,7 +4,7 @@ import { ChevronLeft, Banknote, QrCode, ShieldCheck, CheckCircle2, AlertCircle }
 import { PaymentMethod } from '../../types/cafe';
 
 export const Screen7PaymentModal: React.FC = () => {
-  const { cart, placeOrder, setCustomerScreen, customerName } = useCafe();
+  const { cart, placeOrder, setCustomerScreen, customerName, orderType } = useCafe();
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [gcashRef, setGcashRef] = useState<string>('');
@@ -55,11 +55,17 @@ export const Screen7PaymentModal: React.FC = () => {
       <div>
         {/* Navigation */}
         <button
-          onClick={() => setCustomerScreen(6)}
+          onClick={() => {
+            if (orderType === 'delivery') {
+              setCustomerScreen(9);
+            } else {
+              setCustomerScreen(6);
+            }
+          }}
           className="inline-flex items-center gap-1 text-xs font-semibold text-[#8C7A6B] hover:text-[#5C4033] mb-4 transition"
         >
           <ChevronLeft className="w-4 h-4" />
-          <span>Back to Cart</span>
+          <span>{orderType === 'delivery' ? 'Back to Delivery Details' : 'Back to Cart'}</span>
         </button>
 
         {/* Heading */}
@@ -104,13 +110,17 @@ export const Screen7PaymentModal: React.FC = () => {
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 <Banknote className="w-4 h-4 text-emerald-700 shrink-0" />
-                <h4 className="font-bold text-xs text-[#2B231F]">Cash at Counter</h4>
+                <h4 className="font-bold text-xs text-[#2B231F]">
+                  {orderType === 'delivery' ? 'Cash on Delivery (COD)' : 'Cash at Counter'}
+                </h4>
                 <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
                   Cash
                 </span>
               </div>
               <p className="text-[11px] text-[#736357] mt-0.5">
-                Pay directly with physical cash at the barista counter.
+                {orderType === 'delivery'
+                  ? 'Pay with physical cash to your delivery rider upon arrival.'
+                  : 'Pay directly with physical cash at the barista counter.'}
               </p>
             </div>
           </div>

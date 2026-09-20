@@ -41,7 +41,7 @@ export const Screen6CartModal: React.FC = () => {
             <span className="font-bold text-[#2B231F]">{customerName}</span>
           </div>
           <span className="text-[10px] uppercase font-bold text-[#5C4033] bg-[#FDFBF7] px-2.5 py-1 rounded-full border border-[#E6DDD4]">
-            {orderType === 'dine-in' ? 'Dine-in' : 'Take-out'}
+            {orderType === 'dine-in' ? 'Dine-in' : orderType === 'delivery' ? 'Delivery' : 'Take-out'}
           </span>
         </div>
 
@@ -156,10 +156,16 @@ export const Screen6CartModal: React.FC = () => {
           </div>
 
           <button
-            onClick={() => setCustomerScreen(7)}
-            className="w-full py-4 bg-[#5C4033] hover:bg-[#4A3328] text-[#FDFBF7] font-bold rounded-full text-xs shadow-lg shadow-[#5C4033]/20 transition flex items-center justify-center gap-2 transform active:scale-98"
+            onClick={() => {
+              if (orderType === 'delivery') {
+                setCustomerScreen(9);
+              } else {
+                setCustomerScreen(7);
+              }
+            }}
+            className="w-full py-4 bg-[#5C4033] hover:bg-[#4A3328] text-[#FDFBF7] font-bold rounded-full text-xs shadow-lg shadow-[#5C4033]/20 transition flex items-center justify-center gap-2 transform active:scale-98 cursor-pointer"
           >
-            <span>Proceed to Payment</span>
+            <span>{orderType === 'delivery' ? 'Continue to Delivery' : 'Proceed to Payment'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>

@@ -53,7 +53,7 @@ export type PaymentStatus = 'unpaid' | 'paid';
 
 export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'completed' | 'cancelled';
 
-export type OrderType = 'dine-in' | 'take-out';
+export type OrderType = 'dine-in' | 'take-out' | 'delivery';
 
 export type InventoryChangeType = 'sale' | 'restock' | 'wastage';
 
@@ -120,12 +120,21 @@ export interface OrderItem {
   customizations: Customizations;
 }
 
+export interface DeliveryDetails {
+  address: string;
+  city_region: string;
+  postal_code: string;
+  contact_number: string;
+  driver_notes?: string;
+}
+
 export interface Order {
   id: number;
   tracking_token: string;
   table_id: number | null;
   customer_name: string;
   order_type: OrderType;
+  delivery_details?: DeliveryDetails;
   total_amount: number;
   payment_method: PaymentMethod;
   payment_status: PaymentStatus;

@@ -11,6 +11,7 @@ import {
   PaymentMethod,
   OrderStatus,
   OrderType,
+  DeliveryDetails,
   Role,
   Permission,
   SpatieRoleDefinition,
@@ -115,6 +116,8 @@ interface CafeContextType {
   customerName: string;
   orderType: OrderType;
   selectedTableId: number | null;
+  deliveryDetails: DeliveryDetails | null;
+  setDeliveryDetails: (details: DeliveryDetails | null) => void;
   cart: OrderItem[];
   activeTrackingToken: string | null;
   setActiveTrackingToken: (token: string | null) => void;
@@ -459,6 +462,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [customerName, setCustomerName] = useState<string>('Cheska Kimberly');
   const [orderType, setOrderType] = useState<OrderType>('dine-in');
   const [selectedTableId, setSelectedTableId] = useState<number | null>(3);
+  const [deliveryDetails, setDeliveryDetails] = useState<DeliveryDetails | null>(null);
   const [cart, setCart] = useState<OrderItem[]>([]);
   const [activeTrackingToken, setActiveTrackingToken] = useState<string | null>('CP-849201');
 
@@ -664,6 +668,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
       table_id: orderType === 'dine-in' ? selectedTableId : null,
       customer_name: customerName,
       order_type: orderType,
+      delivery_details: orderType === 'delivery' ? deliveryDetails || undefined : undefined,
       total_amount: subtotal,
       payment_method: paymentMethod,
       payment_status: isOnlinePaid ? 'paid' : 'unpaid',
@@ -1021,6 +1026,8 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
         customerName,
         orderType,
         selectedTableId,
+        deliveryDetails,
+        setDeliveryDetails,
         cart,
         activeTrackingToken,
         setActiveTrackingToken,

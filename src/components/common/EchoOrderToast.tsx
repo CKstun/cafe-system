@@ -74,6 +74,8 @@ export const EchoOrderToast: React.FC = () => {
             <span className="capitalize">
               {payload.order_type === 'dine-in'
                 ? `Table #${payload.table_id || '?'}`
+                : payload.order_type === 'delivery'
+                ? 'Delivery Order'
                 : 'Take-out Order'}
             </span>
             <span className="uppercase text-[10px] font-medium tracking-wide text-[#C4B5A5]">

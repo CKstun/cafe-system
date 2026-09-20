@@ -138,14 +138,15 @@ export const Screen3MenuCatalog: React.FC<Screen3MenuCatalogProps> = ({ onSelect
         </div>
 
         {/* Category Pills Slider matching screenshot */}
-        <div className="mt-3 flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
-          {categories.map((cat) => {
-            const isSelected = selectedCategory.toLowerCase() === cat.toLowerCase();
+        <div className="mt-3 flex items-center gap-2 overflow-x-auto no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden py-0.5">
+          {displayCategories.map((cat) => {
+            const isSelected = selectedCategory?.toLowerCase() === cat.toLowerCase();
             return (
               <button
                 key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-4 py-2 rounded-2xl text-xs font-semibold whitespace-nowrap shadow-xs transition duration-150 active:scale-95 ${
+                type="button"
+                onClick={() => handleCategoryClick(cat)}
+                className={`px-4 py-2 rounded-2xl text-xs font-semibold whitespace-nowrap shadow-xs transition duration-150 active:scale-95 shrink-0 ${
                   isSelected
                     ? 'bg-[#543929] text-white'
                     : 'bg-white text-[#3B2215] border border-[#EADBCE] hover:bg-[#FAF6F0]'
@@ -259,15 +260,6 @@ export const Screen3MenuCatalog: React.FC<Screen3MenuCatalogProps> = ({ onSelect
             <p className="text-xs text-[#8C7465]">
               No menu items found in this section.
             </p>
-            <button
-              onClick={() => {
-                setSearchQuery('');
-                setSelectedCategory('All');
-              }}
-              className="mt-3 px-4 py-2 rounded-2xl bg-[#543929] text-white text-xs font-semibold"
-            >
-              Reset Filters
-            </button>
           </div>
         )}
       </div>

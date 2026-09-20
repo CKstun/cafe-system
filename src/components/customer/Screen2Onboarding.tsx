@@ -22,7 +22,7 @@ export const Screen2Onboarding: React.FC = () => {
       if (!nameInput.trim()) {
         setErrorMessage('Please enter your name to proceed.');
       } else if (!typeInput) {
-        setErrorMessage('Please select Dine-in or Take-out.');
+        setErrorMessage('Please select Dine-in, Take-out, or Delivery.');
       }
       return;
     }
@@ -81,11 +81,11 @@ export const Screen2Onboarding: React.FC = () => {
             <label className="block text-[10px] font-bold uppercase tracking-wider text-[#8C7465] mb-1.5 text-left">
               ORDER TYPE
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
               <button
                 type="button"
                 onClick={() => setTypeInput('dine-in')}
-                className={`py-3.5 px-4 rounded-2xl text-xs font-semibold transition text-center shadow-xs ${
+                className={`py-3.5 px-2 sm:px-3 rounded-2xl text-xs font-semibold transition text-center shadow-xs ${
                   typeInput === 'dine-in'
                     ? 'bg-[#543929] text-white shadow-sm'
                     : 'bg-white text-[#3B2215] border border-[#EADBCE]'
@@ -97,13 +97,25 @@ export const Screen2Onboarding: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setTypeInput('take-out')}
-                className={`py-3.5 px-4 rounded-2xl text-xs font-semibold transition text-center shadow-xs ${
+                className={`py-3.5 px-2 sm:px-3 rounded-2xl text-xs font-semibold transition text-center shadow-xs ${
                   typeInput === 'take-out'
                     ? 'bg-[#543929] text-white shadow-sm'
                     : 'bg-white text-[#3B2215] border border-[#EADBCE]'
                 }`}
               >
                 Take-out
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTypeInput('delivery')}
+                className={`py-3.5 px-2 sm:px-3 rounded-2xl text-xs font-semibold transition text-center shadow-xs ${
+                  typeInput === 'delivery'
+                    ? 'bg-[#543929] text-white shadow-sm'
+                    : 'bg-white text-[#3B2215] border border-[#EADBCE]'
+                }`}
+              >
+                Delivery
               </button>
             </div>
           </div>

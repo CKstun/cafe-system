@@ -200,6 +200,7 @@ export const HeaderNav: React.FC = () => {
                 { id: 3, label: '3. Menu Catalog' },
                 { id: 4, label: '4/5. Customize' },
                 { id: 6, label: '6. Cart' },
+                { id: 9, label: 'Delivery Details' },
                 { id: 7, label: '7. Payment' },
                 { id: 8, label: '8. Live Tracker' },
               ].map((s) => (

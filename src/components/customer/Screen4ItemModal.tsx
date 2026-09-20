@@ -25,6 +25,9 @@ export const Screen4ItemModal: React.FC<Screen4ItemModalProps> = ({ item, onClos
   const isFood = FOOD_CATEGORIES.includes(item.category);
   const isPartyTray = item.category === 'Party Trays';
   const isBeverage = !isFood && !isPartyTray;
+  const isRefresher =
+    item.category.toLowerCase().includes('refresher') ||
+    item.name.toLowerCase().includes('refresher');
 
   // Determine initial size
   const defaultSize =
@@ -44,16 +47,18 @@ export const Screen4ItemModal: React.FC<Screen4ItemModalProps> = ({ item, onClos
 
   // Can this item substitute oat milk?
   const allowsOatMilk = Boolean(
-    item.has_sub_oat ||
-      item.sub_oat_price ||
-      item.available_sizes?.some((s) => s.oat_price !== undefined) ||
-      (['Classic Blend', 'Signature Blend', 'Hot Blend', 'Frappe', 'Non-Espresso'].includes(
-        item.category
-      ) &&
-        !item.name.toLowerCase().includes('americano'))
+    !isRefresher &&
+      (item.has_sub_oat ||
+        item.sub_oat_price ||
+        item.available_sizes?.some((s) => s.oat_price !== undefined) ||
+        (['Classic Blend', 'Signature Blend', 'Hot Blend', 'Frappe', 'Non-Espresso'].includes(
+          item.category
+        ) &&
+          !item.name.toLowerCase().includes('americano')))
   );
 
   const toggleAddOn = (id: number) => {
+    if (isRefresher) return;
     setSelectedAddOnIds((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
@@ -78,12 +83,14 @@ export const Screen4ItemModal: React.FC<Screen4ItemModalProps> = ({ item, onClos
       base += 30; // fallback if unspecified
     }
 
-    const addOnsTotal = addOns
-      .filter((a) => selectedAddOnIds.includes(a.id))
-      .reduce((acc, curr) => acc + curr.price, 0);
+    const addOnsTotal = isRefresher
+      ? 0
+      : addOns
+          .filter((a) => selectedAddOnIds.includes(a.id))
+          .reduce((acc, curr) => acc + curr.price, 0);
 
     return base + addOnsTotal;
-  }, [item, selectedSize, selectedMilk, selectedAddOnIds, addOns, allowsOatMilk]);
+  }, [item, selectedSize, selectedMilk, selectedAddOnIds, addOns, allowsOatMilk, isRefresher]);
 
   const totalPrice = calculatedUnitPrice * quantity;
 
@@ -94,7 +101,9 @@ export const Screen4ItemModal: React.FC<Screen4ItemModalProps> = ({ item, onClos
       return;
     }
 
-    const selectedAddOnObjects = addOns.filter((a) => selectedAddOnIds.includes(a.id));
+    const selectedAddOnObjects = isRefresher
+      ? []
+      : addOns.filter((a) => selectedAddOnIds.includes(a.id));
     addToCart(
       item,
       selectedSize,
@@ -266,8 +275,8 @@ export const Screen4ItemModal: React.FC<Screen4ItemModalProps> = ({ item, onClos
             </div>
           )}
 
-          {/* ADD-ONS Selection (Capsule pill size matching mockup ending in 950) */}
-          {isBeverage && addOns.length > 0 && (
+          {/* ADD-ONS Selection (Capsule pill size matching mockup ending in 950 - not shown for Refreshers) */}
+          {isBeverage && !isRefresher && addOns.length > 0 && (
             <div>
               <label className="block text-[11px] font-bold uppercase tracking-wider text-[#7C6656] mb-2">
                 ADD-ONS

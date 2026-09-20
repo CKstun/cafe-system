@@ -276,9 +276,18 @@ export const StaffDashboard: React.FC = () => {
 
                     <div className="text-right">
                       <span className="text-xs font-bold uppercase text-[#5C4033] bg-[#EFE8E1] px-2.5 py-1 rounded-full border border-[#E6DDD4]">
-                        {order.order_type === 'dine-in' ? 'Dine-in' : 'Take-out'}
+                        {order.order_type === 'dine-in'
+                          ? 'Dine-in'
+                          : order.order_type === 'delivery'
+                          ? 'Delivery'
+                          : 'Take-out'}
                       </span>
                       <p className="text-xs font-bold text-[#2B231F] mt-1">{order.customer_name}</p>
+                      {order.delivery_details && (
+                        <p className="text-[10px] text-[#7A6253] mt-0.5 max-w-[200px] truncate text-right">
+                          📍 {order.delivery_details.address}, {order.delivery_details.city_region}
+                        </p>
+                      )}
                     </div>
                   </div>
 

@@ -5,6 +5,7 @@ import { Screen2Onboarding } from './Screen2Onboarding';
 import { Screen3MenuCatalog } from './Screen3MenuCatalog';
 import { Screen4ItemModal } from './Screen4ItemModal';
 import { Screen6CartModal } from './Screen6CartModal';
+import { ScreenDeliveryDetails } from './ScreenDeliveryDetails';
 import { Screen7PaymentModal } from './Screen7PaymentModal';
 import { Screen8LiveTracker } from './Screen8LiveTracker';
 import { MenuItem } from '../../types/cafe';
@@ -38,6 +39,8 @@ export const CustomerApp: React.FC = () => {
         );
       case 6:
         return <Screen6CartModal />;
+      case 9:
+        return <ScreenDeliveryDetails />;
       case 7:
         return <Screen7PaymentModal />;
       case 8:
