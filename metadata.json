@@ -1,0 +1,6 @@
+{
+  "name": "Café Pepita - QR Ordering & Inventory",
+  "description": "Web-based QR Code Cafe Ordering, Kitchen Display, and Inventory Management System for Café Pepita.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,66 @@
+import React, { useState } from 'react';
+import { useCafe } from '../../context/CafeContext';
+import { Screen1Splash } from './Screen1Splash';
+import { Screen2Onboarding } from './Screen2Onboarding';
+import { Screen3MenuCatalog } from './Screen3MenuCatalog';
+import { Screen4ItemModal } from './Screen4ItemModal';
+import { Screen6CartModal } from './Screen6CartModal';
+import { Screen7PaymentModal } from './Screen7PaymentModal';
+import { Screen8LiveTracker } from './Screen8LiveTracker';
+import { MenuItem } from '../../types/cafe';
+
+export const CustomerApp: React.FC = () => {
+  const { customerScreen, setCustomerScreen } = useCafe();
+  const [selectedMenuItem, setSelectedMenuItem] = useState<MenuItem | null>(null);
+
+  const renderScreen = () => {
+    switch (customerScreen) {
+      case 1:
+        return <Screen1Splash />;
+      case 2:
+        return <Screen2Onboarding />;
+      case 3:
+        return <Screen3MenuCatalog onSelectItem={(item) => setSelectedMenuItem(item)} />;
+      case 4:
+      case 5:
+        // Screen 4/5 is the customization view; if no item is actively chosen, default to first menu item
+        return (
+          <div className="relative">
+            <Screen3MenuCatalog onSelectItem={(item) => setSelectedMenuItem(item)} />
+            <Screen4ItemModal
+              item={selectedMenuItem}
+              onClose={() => {
+                setSelectedMenuItem(null);
+                setCustomerScreen(3);
+              }}
+            />
+          </div>
+        );
+      case 6:
+        return <Screen6CartModal />;
+      case 7:
+        return <Screen7PaymentModal />;
+      case 8:
+        return <Screen8LiveTracker />;
+      default:
+        return <Screen3MenuCatalog onSelectItem={(item) => setSelectedMenuItem(item)} />;
+    }
+  };
+
+  return (
+    <div className="min-h-[calc(100vh-64px)] bg-[#F4ECE1] text-[#3B2215] flex flex-col items-center">
+      {/* Clean, responsive application container without phone mockup frame */}
+      <div className="w-full max-w-2xl min-h-[calc(100vh-64px)] flex flex-col bg-[#F4ECE1] sm:shadow-sm sm:border-x sm:border-[#EADBCE]/70">
+        {renderScreen()}
+
+        {/* Modal Overlay for Item Customization when active on screen 3 */}
+        {customerScreen === 3 && selectedMenuItem && (
+          <Screen4ItemModal
+            item={selectedMenuItem}
+            onClose={() => setSelectedMenuItem(null)}
+          />
+        )}
+      </div>
+    </div>
+  );
+};

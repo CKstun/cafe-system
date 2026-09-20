@@ -1,0 +1,14 @@
+<svg viewBox="0 0 300 300" width="300" height="300" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="150" cy="150" r="142" stroke="#1C1816" stroke-width="3" fill="#FFFFFF" />
+  <circle cx="150" cy="150" r="136" stroke="#1C1816" stroke-width="1.5" fill="none" />
+  <line x1="130" y1="58" x2="130" y2="232" stroke="#1C1816" stroke-width="3.5" stroke-linecap="round" />
+  <path d="M 120 125 C 117 115 115 105 120 95 C 124 86 123 78 120 70" stroke="#1C1816" stroke-width="3.5" stroke-linecap="round" fill="none" />
+  <line x1="88" y1="130" x2="130" y2="130" stroke="#1C1816" stroke-width="4" stroke-linecap="round" />
+  <path d="M 100 148 L 130 148 L 130 176 C 116 176 102 165 100 148 Z" fill="#6F3F24" />
+  <path d="M 88 130 L 98 176 C 104 182 116 182 130 182" stroke="#1C1816" stroke-width="4" stroke-linecap="round" fill="none" />
+  <path d="M 88 140 C 70 140 70 162 89 162" stroke="#1C1816" stroke-width="3.5" stroke-linecap="round" fill="none" />
+  <path d="M 88 186 C 98 194 116 194 130 194" stroke="#1C1816" stroke-width="3.5" stroke-linecap="round" fill="none" />
+  <text x="140" y="126" fill="#1C1816" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="900" font-size="36" letter-spacing="0.05em">CAFÉ</text>
+  <text x="140" y="172" fill="#1C1816" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="900" font-size="36" letter-spacing="0.05em">PEPITA</text>
+  <text x="136" y="196" fill="#1C1816" font-family="serif" font-style="italic" font-weight="600" font-size="21">Sip the moment.</text>
+</svg>
