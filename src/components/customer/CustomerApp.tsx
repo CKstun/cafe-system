@@ -50,10 +50,14 @@ export const CustomerApp: React.FC = () => {
     }
   };
 
+  const isWideScreen = [3, 4, 5].includes(customerScreen);
+
   return (
     <div className="min-h-screen bg-[#F4ECE1] text-[#3B2215] flex flex-col items-center">
-      {/* Clean, responsive application container without phone mockup frame */}
-      <div className="w-full max-w-2xl min-h-screen flex flex-col bg-[#F4ECE1] sm:shadow-sm sm:border-x sm:border-[#EADBCE]/70">
+      {/* Clean, responsive application container */}
+      <div className={`w-full min-h-screen flex flex-col bg-[#F4ECE1] sm:shadow-sm sm:border-x sm:border-[#EADBCE]/70 transition-all duration-300 ${
+        isWideScreen ? 'max-w-7xl' : 'max-w-2xl sm:max-w-3xl'
+      }`}>
         {renderScreen()}
 
         {/* Modal Overlay for Item Customization when active on screen 3 */}

@@ -131,6 +131,7 @@ export interface OrderItem {
   item_name: string;
   quantity: number;
   price: number;
+  image_path?: string;
   customizations: Customizations;
 }
 
@@ -153,6 +154,7 @@ export interface Order {
   payment_method: PaymentMethod;
   payment_status: PaymentStatus;
   order_status: OrderStatus;
+  gcash_receipt_path?: string;
   cancellation_requested?: boolean;
   cancellation_reason?: string;
   items: OrderItem[];

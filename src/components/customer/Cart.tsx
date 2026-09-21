@@ -1,11 +1,12 @@
 import React from 'react';
 import { useCafe } from '../../context/CafeContext';
-import { ChevronLeft, Trash2, Plus, Minus, ShoppingBag, ArrowRight } from 'lucide-react';
+import { ChevronLeft, Trash2, Plus, Minus, ShoppingBag, ArrowRight, Coffee } from 'lucide-react';
 import { CafeLogo } from '../common/CafeLogo';
 
 export const Cart: React.FC = () => {
   const {
     cart,
+    menuItems,
     updateCartQuantity,
     removeFromCart,
     setCustomerScreen,
@@ -46,16 +47,16 @@ export const Cart: React.FC = () => {
   return (
     <div className="flex-1 min-h-[560px] flex flex-col justify-between bg-[#FDFBF7] text-[#2B231F] relative">
       {/* 
-        1. STICKY CART HEADER DESIGN:
-        - Locked at the top when scrolling through cart items (sticky top-0 z-50 bg-[#FDFBF7])
-        - Left: Back arrow (<) + Title ("Your Cart")
-        - Subtext: [Customer Name] • [Order Type] (e.g., "Cheska • Dine-in")
-        - Right: Café Pepita Logo (tapping navigates to /welcome)
+        2. REVISED STICKY CART HEADER LAYOUT:
+        - Locked at the top when scrolling (sticky top-0 z-50 bg-[#FDFBF7])
+        - Left Side: Back Navigation Arrow (<)
+        - Middle / Main Section: Café Pepita Logo (tapping redirects back to /welcome)
+        - Right Side: "Your Cart" header text, with dynamic customer subtext [Customer Name] • [Order Type]
       */}
-      <div className="sticky top-0 z-50 bg-[#FDFBF7] border-b border-[#EADBCE]/80 shadow-xs px-4 sm:px-6 py-3.5 transition-all">
+      <div className="sticky top-0 z-50 bg-[#FDFBF7] border-b border-[#EADBCE]/80 shadow-xs px-4 sm:px-6 py-3 transition-all">
         <div className="flex items-center justify-between">
-          {/* Back Arrow & Header Title Group */}
-          <div className="flex items-center gap-2.5">
+          {/* Left Side: Back Navigation Arrow (<) */}
+          <div className="flex items-center">
             <button
               type="button"
               onClick={handleBackToMenu}
@@ -64,38 +65,35 @@ export const Cart: React.FC = () => {
             >
               <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
             </button>
+          </div>
 
-            <div
-              onClick={handleBackToMenu}
-              className="cursor-pointer group select-none text-left"
-              title="Click to return to menu"
-            >
-              <div className="flex items-center gap-2">
-                <h1 className="font-display text-lg sm:text-xl font-bold text-[#2B231F] group-hover:text-[#5C3D2E] transition-colors leading-none">
-                  Your Cart
-                </h1>
-                {totalItemCount > 0 && (
-                  <span className="text-[10px] font-bold text-[#5C3D2E] bg-[#F4EFEB] px-2 py-0.5 rounded-full border border-[#EADBCE]">
-                    {totalItemCount} {totalItemCount === 1 ? 'item' : 'items'}
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-[#7A6253] font-medium mt-1 leading-tight">
-                {customerDisplay} • {orderTypeLabel}
-              </p>
+          {/* Middle / Main Section: Café Pepita Logo (tapping redirects to /welcome) */}
+          <div
+            onClick={handleLogoClick}
+            title="Café Pepita — Return to Welcome Screen"
+            className="cursor-pointer group flex items-center justify-center"
+          >
+            <div className="w-11 h-11 rounded-full bg-white shadow-xs border border-[#EADBCE] flex items-center justify-center p-0.5 group-hover:scale-105 active:scale-95 transition">
+              <CafeLogo size={42} className="w-9 h-9" showBorder={false} />
             </div>
           </div>
 
-          {/* Café Pepita Logo Badge: Clicking navigates to /welcome */}
-          <button
-            type="button"
-            onClick={handleLogoClick}
-            aria-label="Return to Welcome Screen"
-            title="Café Pepita — Return to Welcome"
-            className="w-10 h-10 rounded-full bg-white shadow-xs border border-[#EADBCE] flex items-center justify-center p-0.5 hover:scale-105 active:scale-95 transition cursor-pointer shrink-0"
-          >
-            <CafeLogo size={36} className="w-8 h-8" showBorder={false} />
-          </button>
+          {/* Right Side: "Your Cart" header text + dynamic customer subtext */}
+          <div className="text-right select-none">
+            <div className="flex items-center justify-end gap-1.5">
+              <h1 className="font-display text-base sm:text-lg font-bold text-[#2B231F] leading-none">
+                Your Cart
+              </h1>
+              {totalItemCount > 0 && (
+                <span className="text-[10px] font-bold text-[#5C3D2E] bg-[#F4EFEB] px-1.5 py-0.5 rounded-full border border-[#EADBCE]">
+                  {totalItemCount}
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] sm:text-xs text-[#7A6253] font-medium mt-1 leading-tight">
+              {customerDisplay} • {orderTypeLabel}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -125,94 +123,125 @@ export const Cart: React.FC = () => {
           </div>
         ) : (
           <div className="space-y-3">
-            {cart.map((line) => (
-              <div
-                key={line.id}
-                className="p-3.5 sm:p-4 bg-[#F4EFEB] rounded-2xl border border-[#E6DDD4] flex items-start sm:items-center justify-between gap-3 shadow-2xs transition hover:border-[#D8C7BA]"
-              >
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-bold text-sm text-[#2B231F] leading-tight truncate">
-                    {line.item_name}
-                  </h4>
+            {cart.map((line) => {
+              const itemImage =
+                line.image_path ||
+                menuItems.find((m) => m.id === line.menu_item_id)?.image_path;
 
-                  {/* Customizations tags */}
-                  <div className="flex flex-wrap gap-1 mt-1.5 text-[10px] text-[#7A6253]">
-                    {line.customizations.size && (
-                      <span className="bg-[#EADBCE] text-[#5C3D2E] px-2 py-0.5 rounded-lg font-semibold">
-                        {line.customizations.size}
-                      </span>
-                    )}
-                    {line.customizations.flavor && (
-                      <span className="bg-[#EADBCE] text-[#5C3D2E] px-2 py-0.5 rounded-lg font-semibold">
-                        {line.customizations.flavor}
-                      </span>
-                    )}
-                    {line.customizations.milk_type === 'oat' && (
-                      <span className="bg-amber-100 text-amber-900 px-2 py-0.5 rounded-lg font-semibold">
-                        Oat Milk
-                      </span>
-                    )}
-                    {line.customizations.add_ons?.map((a) => (
-                      <span key={a.id} className="bg-white/80 text-[#5C3D2E] px-2 py-0.5 rounded-lg border border-[#EADBCE]">
-                        +{a.name}
-                      </span>
-                    ))}
+              return (
+                <div
+                  key={line.id}
+                  className="p-3.5 sm:p-4 bg-[#F4EFEB] rounded-2xl border border-[#E6DDD4] flex items-start sm:items-center justify-between gap-3.5 shadow-2xs transition hover:border-[#D8C7BA]"
+                >
+                  {/* Product Thumbnail (w-16 h-16 rounded-xl object-cover) */}
+                  <div className="w-16 h-16 rounded-xl bg-[#EFE7DC] flex items-center justify-center shrink-0 overflow-hidden relative border border-[#EADBCE]/60">
+                    {itemImage ? (
+                      <img
+                        src={itemImage}
+                        alt={line.item_name}
+                        className="w-16 h-16 rounded-xl object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          if (e.currentTarget.nextElementSibling) {
+                            (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex';
+                          }
+                        }}
+                      />
+                    ) : null}
+                    <div
+                      className={`w-full h-full flex items-center justify-center ${
+                        itemImage ? 'hidden' : 'flex'
+                      }`}
+                    >
+                      <Coffee className="w-6 h-6 text-[#A69485]" />
+                    </div>
                   </div>
 
-                  {/* Comments */}
-                  {line.customizations.comments && (
-                    <p className="text-[11px] text-[#736357] italic mt-1.5 bg-white/60 px-2 py-0.5 rounded-lg inline-block border border-[#EADBCE]/50">
-                      "{line.customizations.comments}"
+                  {/* Item Details */}
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-bold text-sm text-[#2B231F] leading-tight truncate">
+                      {line.item_name}
+                    </h4>
+
+                    {/* Customizations tags */}
+                    <div className="flex flex-wrap gap-1 mt-1.5 text-[10px] text-[#7A6253]">
+                      {line.customizations.size && (
+                        <span className="bg-[#EADBCE] text-[#5C3D2E] px-2 py-0.5 rounded-lg font-semibold">
+                          {line.customizations.size}
+                        </span>
+                      )}
+                      {line.customizations.flavor && (
+                        <span className="bg-[#EADBCE] text-[#5C3D2E] px-2 py-0.5 rounded-lg font-semibold">
+                          {line.customizations.flavor}
+                        </span>
+                      )}
+                      {line.customizations.milk_type === 'oat' && (
+                        <span className="bg-amber-100 text-amber-900 px-2 py-0.5 rounded-lg font-semibold">
+                          Oat Milk
+                        </span>
+                      )}
+                      {line.customizations.add_ons?.map((a) => (
+                        <span key={a.id} className="bg-white/80 text-[#5C3D2E] px-2 py-0.5 rounded-lg border border-[#EADBCE]">
+                          +{a.name}
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Comments */}
+                    {line.customizations.comments && (
+                      <p className="text-[11px] text-[#736357] italic mt-1.5 bg-white/60 px-2 py-0.5 rounded-lg inline-block border border-[#EADBCE]/50">
+                        "{line.customizations.comments}"
+                      </p>
+                    )}
+
+                    {/* Unit & Line Price */}
+                    <p className="font-bold text-xs font-mono text-[#5C3D2E] mt-2">
+                      ₱{(line.price * line.quantity).toFixed(2)}{' '}
+                      {line.quantity > 1 && (
+                        <span className="text-[10px] text-[#8C7A6B] font-normal font-sans">
+                          (₱{line.price.toFixed(2)} each)
+                        </span>
+                      )}
                     </p>
-                  )}
-
-                  {/* Unit & Line Price */}
-                  <p className="font-bold text-xs font-mono text-[#5C3D2E] mt-2">
-                    ₱{(line.price * line.quantity).toFixed(2)}{' '}
-                    {line.quantity > 1 && (
-                      <span className="text-[10px] text-[#8C7A6B] font-normal">
-                        (₱{line.price.toFixed(2)} each)
-                      </span>
-                    )}
-                  </p>
-                </div>
-
-                {/* Quantity Adjuster & Trash */}
-                <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 shrink-0">
-                  <div className="flex items-center bg-white rounded-xl p-1 border border-[#E6DDD4] shadow-2xs">
-                    <button
-                      type="button"
-                      onClick={() => updateCartQuantity(line.id, -1)}
-                      className="w-7 h-7 rounded-lg bg-[#F4EFEB] text-[#5C3D2E] font-bold text-xs flex items-center justify-center hover:bg-[#EADBCE] active:scale-95 transition cursor-pointer"
-                      aria-label="Decrease quantity"
-                    >
-                      <Minus className="w-3.5 h-3.5" />
-                    </button>
-                    <span className="w-8 text-center text-xs font-mono font-bold text-[#2B231F]">
-                      {line.quantity}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => updateCartQuantity(line.id, 1)}
-                      className="w-7 h-7 rounded-lg bg-[#5C3D2E] text-white font-bold text-xs flex items-center justify-center hover:bg-[#4A2F22] active:scale-95 transition cursor-pointer"
-                      aria-label="Increase quantity"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                    </button>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => removeFromCart(line.id)}
-                    className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
-                    title="Remove item"
-                    aria-label="Remove item"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {/* Quantity Adjuster & Trash */}
+                  <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 shrink-0">
+                    <div className="flex items-center bg-white rounded-xl p-1 border border-[#E6DDD4] shadow-2xs">
+                      <button
+                        type="button"
+                        onClick={() => updateCartQuantity(line.id, -1)}
+                        className="w-7 h-7 rounded-lg bg-[#F4EFEB] text-[#5C3D2E] font-bold text-xs flex items-center justify-center hover:bg-[#EADBCE] active:scale-95 transition cursor-pointer"
+                        aria-label="Decrease quantity"
+                      >
+                        <Minus className="w-3.5 h-3.5" />
+                      </button>
+                      <span className="w-8 text-center text-xs font-mono font-bold text-[#2B231F]">
+                        {line.quantity}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => updateCartQuantity(line.id, 1)}
+                        className="w-7 h-7 rounded-lg bg-[#5C3D2E] text-white font-bold text-xs flex items-center justify-center hover:bg-[#4A2F22] active:scale-95 transition cursor-pointer"
+                        aria-label="Increase quantity"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => removeFromCart(line.id)}
+                      className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
+                      title="Remove item"
+                      aria-label="Remove item"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -239,16 +268,22 @@ export const Cart: React.FC = () => {
 
             {/* Itemized List Lines */}
             <div className="space-y-1.5 text-xs text-[#2B231F]">
-              {cart.map((item) => (
-                <div key={item.id} className="flex justify-between items-center">
-                  <span className="truncate pr-2 font-medium text-[#3B2215]">
-                    {item.item_name} × {item.quantity}
-                  </span>
-                  <span className="font-mono text-[#5C3D2E] font-semibold shrink-0">
-                    ₱{(item.price * item.quantity).toFixed(2)}
-                  </span>
-                </div>
-              ))}
+              {cart.map((item) => {
+                const flavorPart = item.customizations.flavor ? ` ${item.customizations.flavor}` : '';
+                const sizePart = item.customizations.size ? ` ${item.customizations.size}` : '';
+                const itemLabel = `${item.item_name}${flavorPart}${sizePart} • ₱${item.price.toFixed(2)} x${item.quantity}`;
+
+                return (
+                  <div key={item.id} className="flex justify-between items-center text-xs">
+                    <span className="truncate pr-2 font-medium text-[#3B2215]">
+                      {itemLabel}
+                    </span>
+                    <span className="font-mono text-[#5C3D2E] font-semibold shrink-0">
+                      ₱{item.price.toFixed(2)}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
 
             {/* Clear Bold Total Row */}

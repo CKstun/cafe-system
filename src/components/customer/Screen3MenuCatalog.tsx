@@ -161,22 +161,22 @@ export const Screen3MenuCatalog: React.FC<Screen3MenuCatalogProps> = ({ onSelect
         />
       </div>
 
-      {/* Menu Catalog List (Single Column Stack matching screenshot) */}
-      <div className="p-4 space-y-3">
+      {/* Adaptive Menu Grid View (Breakpoint-based: mobile 1-col, tablet 2-3 col, desktop 4-col) */}
+      <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {filteredItems.map((item) => (
           <div
             key={item.id}
             onClick={() => onSelectItem(item)}
-            className="bg-white rounded-3xl p-3 shadow-xs flex items-center gap-3.5 transition hover:shadow-md cursor-pointer border border-[#EADBCE]/40"
+            className="bg-white rounded-3xl p-3.5 shadow-xs flex flex-row md:flex-col justify-between gap-3.5 transition duration-200 hover:shadow-md cursor-pointer border border-[#EADBCE]/50 group"
           >
-            {/* Left Image / "No Image" Box */}
-            <div className="w-32 h-28 sm:w-36 sm:h-32 rounded-2xl bg-[#EFE7DC] flex items-center justify-center shrink-0 overflow-hidden relative">
+            {/* Left / Top Image */}
+            <div className="w-28 h-28 sm:w-32 sm:h-32 md:w-full md:h-44 rounded-2xl bg-[#EFE7DC] flex items-center justify-center shrink-0 overflow-hidden relative">
               {item.image_path ? (
                 <img
                   src={item.image_path}
                   alt={item.name}
                   loading="lazy"
-                  className="w-full h-full object-cover rounded-2xl"
+                  className="w-full h-full object-cover rounded-2xl transition duration-300 group-hover:scale-105"
                   onError={(e) => {
                     // Fallback to "No Image" container on image error
                     e.currentTarget.style.display = 'none';
@@ -197,22 +197,22 @@ export const Screen3MenuCatalog: React.FC<Screen3MenuCatalogProps> = ({ onSelect
               </div>
             </div>
 
-            {/* Right Item Info */}
-            <div className="flex-1 flex flex-col justify-between self-stretch py-1">
+            {/* Item Info & Price / Add CTA */}
+            <div className="flex-1 flex flex-col justify-between self-stretch py-0.5">
               <div>
-                <h3 className="font-bold text-sm sm:text-base text-[#3B2215] leading-snug">
+                <h3 className="font-bold text-sm sm:text-base text-[#3B2215] leading-snug group-hover:text-[#5C3D2E] transition-colors">
                   {item.name}
                 </h3>
                 {item.description && (
-                  <p className="text-[10px] text-[#8C7465] line-clamp-1 mt-0.5">
+                  <p className="text-[11px] text-[#8C7465] line-clamp-2 mt-1 leading-relaxed">
                     {item.description}
                   </p>
                 )}
               </div>
 
-              {/* Price and Plus Button matching screenshot */}
-              <div className="flex items-center justify-between mt-2">
-                <span className="font-bold text-sm sm:text-base text-[#3B2215]">
+              {/* Price and Plus Button */}
+              <div className="flex items-center justify-between mt-3 pt-1">
+                <span className="font-bold text-sm sm:text-base font-mono text-[#3B2215]">
                   ₱{item.price.toFixed(2)}
                 </span>
                 <button
@@ -221,10 +221,10 @@ export const Screen3MenuCatalog: React.FC<Screen3MenuCatalogProps> = ({ onSelect
                     e.stopPropagation();
                     onSelectItem(item);
                   }}
-                  className="w-11 h-8 rounded-2xl bg-[#543929] hover:bg-[#432C1D] active:scale-95 text-white flex items-center justify-center shadow-xs transition"
+                  className="w-11 h-9 rounded-2xl bg-[#5C3D2E] hover:bg-[#4A2F22] active:bg-[#3D261B] active:scale-95 text-white flex items-center justify-center shadow-xs transition cursor-pointer"
                   aria-label={`Add ${item.name}`}
                 >
-                  <Plus className="w-4 h-4 text-white" />
+                  <Plus className="w-4 h-4 text-white stroke-[2.5]" />
                 </button>
               </div>
             </div>
@@ -232,7 +232,7 @@ export const Screen3MenuCatalog: React.FC<Screen3MenuCatalogProps> = ({ onSelect
         ))}
 
         {filteredItems.length === 0 && (
-          <div className="py-16 text-center px-4 bg-white rounded-3xl border border-[#EADBCE]/50">
+          <div className="col-span-full py-16 text-center px-4 bg-white rounded-3xl border border-[#EADBCE]/50">
             <p className="text-xs text-[#8C7465]">
               No menu items found in this section.
             </p>
@@ -245,15 +245,15 @@ export const Screen3MenuCatalog: React.FC<Screen3MenuCatalogProps> = ({ onSelect
         <div className="fixed bottom-4 left-4 right-4 max-w-md sm:max-w-lg md:max-w-xl mx-auto z-40">
           <button
             onClick={() => setCustomerScreen(6)}
-            className="w-full py-3.5 px-5 bg-[#543929] hover:bg-[#432C1D] text-white rounded-2xl shadow-xl flex items-center justify-between font-bold text-xs transition transform active:scale-98"
+            className="w-full py-3.5 px-6 bg-[#5C3D2E] hover:bg-[#4A2F22] active:bg-[#3D261B] text-white rounded-2xl shadow-xl flex items-center justify-between font-bold text-xs sm:text-sm transition transform active:scale-98 cursor-pointer"
           >
             <div className="flex items-center gap-2">
-              <span className="w-5 h-5 rounded-full bg-white text-[#543929] flex items-center justify-center text-[10px] font-extrabold">
+              <span className="w-5 h-5 rounded-full bg-white text-[#5C3D2E] flex items-center justify-center text-[10px] font-extrabold">
                 {totalCartCount}
               </span>
               <span>View Cart</span>
             </div>
-            <span className="text-sm">₱{totalCartAmount.toFixed(2)}</span>
+            <span className="font-mono text-sm font-bold">₱{totalCartAmount.toFixed(2)}</span>
           </button>
         </div>
       )}

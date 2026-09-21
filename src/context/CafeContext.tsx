@@ -151,7 +151,7 @@ interface CafeContextType {
   updateCartQuantity: (cartId: string, delta: number) => void;
   removeFromCart: (cartId: string) => void;
   clearCart: () => void;
-  placeOrder: (paymentMethod: PaymentMethod, onlineRef?: string) => string;
+  placeOrder: (paymentMethod: PaymentMethod, gcashReceiptPath?: string) => string;
   requestOrderCancellation: (token: string, reason: string) => void;
   viewOrderTracker: (token: string) => void;
 
@@ -766,6 +766,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
       item_name: flavor ? `${item.base_item || item.name} (${flavor})` : item.name,
       quantity,
       price: itemTotalPrice,
+      image_path: item.image_path,
       customizations: {
         size,
         flavor,
@@ -895,7 +896,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const placeOrder = (paymentMethod: PaymentMethod, onlineRef?: string): string => {
+  const placeOrder = (paymentMethod: PaymentMethod, gcashReceiptPath?: string): string => {
     const trackingToken = 'CP-' + Math.floor(100000 + Math.random() * 900000);
     const subtotal = cart.reduce((acc, curr) => acc + curr.price * curr.quantity, 0);
 
@@ -912,6 +913,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
       payment_method: paymentMethod,
       payment_status: isOnlinePaid ? 'paid' : 'unpaid',
       order_status: isOnlinePaid ? 'preparing' : 'pending',
+      gcash_receipt_path: isOnlinePaid ? (gcashReceiptPath || undefined) : undefined,
       items: [...cart],
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
