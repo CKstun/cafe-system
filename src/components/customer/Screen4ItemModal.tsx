@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useCafe } from '../../context/CafeContext';
 import { MenuItem } from '../../types/cafe';
-import { X, Plus, Minus } from 'lucide-react';
+import { X, Plus, Minus, AlertCircle } from 'lucide-react';
 
 interface Screen4ItemModalProps {
   item: MenuItem | null;
@@ -18,7 +18,7 @@ const FOOD_CATEGORIES = [
 ];
 
 export const Screen4ItemModal: React.FC<Screen4ItemModalProps> = ({ item, onClose }) => {
-  const { addOns, addToCart } = useCafe();
+  const { addOns, addToCart, checkVariantAvailability } = useCafe();
 
   if (!item) return null;
 
@@ -177,27 +177,39 @@ export const Screen4ItemModal: React.FC<Screen4ItemModalProps> = ({ item, onClos
                   const isSelected = selectedSize === s.size;
                   const displayPrice =
                     selectedMilk === 'oat' && s.oat_price ? s.oat_price : s.price;
+                  const stockCheck = checkVariantAvailability(item.id, s.size);
+                  const isAvailable = stockCheck.isAvailable;
+
                   return (
                     <button
                       key={s.size}
                       type="button"
                       onClick={() => setSelectedSize(s.size)}
-                      className={`py-3.5 px-4 rounded-2xl text-center transition flex flex-col items-center justify-center ${
+                      className={`py-3.5 px-4 rounded-2xl text-center transition flex flex-col items-center justify-center relative ${
                         isSelected
-                          ? 'bg-[#83502E] text-white shadow-md'
-                          : 'bg-white text-[#2B231F] border border-stone-200/70 hover:border-[#83502E]/60 shadow-2xs'
+                          ? 'bg-[#83502E] text-white shadow-md ring-2 ring-[#5C3D2E]'
+                          : isAvailable
+                          ? 'bg-white text-[#2B231F] border border-stone-200/70 hover:border-[#83502E]/60 shadow-2xs'
+                          : 'bg-stone-100/80 text-stone-400 border border-stone-200 cursor-pointer'
                       }`}
                     >
-                      <span className={`text-sm font-bold ${isSelected ? 'text-white' : 'text-[#2B231F]'}`}>
+                      <span className={`text-sm font-bold ${isSelected ? 'text-white' : isAvailable ? 'text-[#2B231F]' : 'text-stone-500'}`}>
                         {s.size}
                       </span>
                       <span
                         className={`text-xs mt-0.5 ${
-                          isSelected ? 'text-white/90 font-medium' : 'text-[#8C7A6B]'
+                          isSelected ? 'text-white/90 font-medium' : isAvailable ? 'text-[#8C7A6B]' : 'text-stone-400 line-through'
                         }`}
                       >
                         ₱{displayPrice.toFixed(2)}
                       </span>
+                      {!isAvailable && (
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase mt-1 ${
+                          isSelected ? 'bg-red-500 text-white' : 'bg-red-100 text-red-700'
+                        }`}>
+                          Out of Stock
+                        </span>
+                      )}
                     </button>
                   );
                 })}
@@ -325,8 +337,23 @@ export const Screen4ItemModal: React.FC<Screen4ItemModalProps> = ({ item, onClos
           </div>
 
           {/* QUANTITY Selection and Action Bar */}
-          <div className="pt-2">
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#7C6656] mb-2">
+          <div className="pt-2 space-y-3">
+            {(() => {
+              const currentStockCheck = checkVariantAvailability(item.id, selectedSize);
+              if (!currentStockCheck.isAvailable) {
+                return (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-2xl text-xs text-red-700 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                    <span>
+                      The <strong>{selectedSize}</strong> variant is currently unavailable due to limited {currentStockCheck.missingItemName || 'supplies'}. Please choose another size.
+                    </span>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#7C6656]">
               QUANTITY
             </label>
             <div className="flex items-center gap-3">
@@ -354,14 +381,24 @@ export const Screen4ItemModal: React.FC<Screen4ItemModalProps> = ({ item, onClos
               </div>
 
               {/* Add to Order Button */}
-              <button
-                type="button"
-                onClick={handleAddToCart}
-                className="flex-1 py-3.5 px-5 bg-[#5C3D2E] hover:bg-[#4A2F22] active:bg-[#3D261B] text-white font-bold text-sm rounded-2xl shadow-md transition flex items-center justify-between active:scale-98 cursor-pointer"
-              >
-                <span>Add to Order</span>
-                <span className="font-mono">₱{totalPrice.toFixed(2)}</span>
-              </button>
+              {(() => {
+                const isAvail = checkVariantAvailability(item.id, selectedSize).isAvailable;
+                return (
+                  <button
+                    type="button"
+                    disabled={!isAvail}
+                    onClick={handleAddToCart}
+                    className={`flex-1 py-3.5 px-5 font-bold text-sm rounded-2xl shadow-md transition flex items-center justify-between ${
+                      isAvail
+                        ? 'bg-[#5C3D2E] hover:bg-[#4A2F22] active:bg-[#3D261B] text-white active:scale-98 cursor-pointer'
+                        : 'bg-stone-200 text-stone-400 cursor-not-allowed border border-stone-300'
+                    }`}
+                  >
+                    <span>{isAvail ? 'Add to Order' : 'Variant Out of Stock'}</span>
+                    <span className="font-mono">₱{totalPrice.toFixed(2)}</span>
+                  </button>
+                );
+              })()}
             </div>
           </div>
         </div>

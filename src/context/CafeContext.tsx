@@ -7,6 +7,8 @@ import {
   OrderItem,
   InventoryLog,
   InventoryUnit,
+  InventoryItem,
+  VariantRecipeRule,
   User,
   PaymentMethod,
   OrderStatus,
@@ -18,7 +20,14 @@ import {
   EchoBroadcastEvent,
   AuthSession,
 } from '../types/cafe';
-import { RAW_MENU_ITEMS, INITIAL_ADDONS, INITIAL_BOTTLENECK_UNITS, INITIAL_CATEGORIES } from '../data/defaultMenu';
+import {
+  RAW_MENU_ITEMS,
+  INITIAL_ADDONS,
+  INITIAL_BOTTLENECK_UNITS,
+  INITIAL_CATEGORIES,
+  INITIAL_INVENTORY_ITEMS,
+  INITIAL_RECIPE_RULES,
+} from '../data/defaultMenu';
 import { playOrderChime } from '../utils/audioChime';
 
 export const INITIAL_SPATIE_ROLES: SpatieRoleDefinition[] = [
@@ -172,6 +181,32 @@ interface CafeContextType {
   toggleMenuItemAvailability: (id: number) => void;
   restockUnit: (unitId: string, qty: number, notes: string) => void;
   restockMenuItem: (itemId: number, qty: number, notes: string) => void;
+
+  // Dynamic Inventory & BOM Management
+  inventoryItems: InventoryItem[];
+  recipeRules: VariantRecipeRule[];
+  addInventoryItem: (item: Omit<InventoryItem, 'id'>) => void;
+  updateInventoryItem: (id: number | string, updates: Partial<InventoryItem>) => void;
+  deleteInventoryItem: (id: number | string) => void;
+  restockInventoryItem: (id: number | string, qty: number, notes?: string) => void;
+  saveRecipeRulesForVariant: (
+    menuItemId: number,
+    variantSize: string,
+    items: { inventory_item_id: number | string; quantity_deducted: number }[]
+  ) => void;
+  deleteRecipeRule: (id: number | string) => void;
+  checkVariantAvailability: (menuItemId: number, size?: string) => {
+    isAvailable: boolean;
+    reason?: string;
+    missingItemName?: string;
+    requiredItemStock?: number;
+  };
+  checkItemOverallAvailability: (menuItemId: number) => {
+    isAvailable: boolean;
+    outOfStockVariants: string[];
+    missingItemName?: string;
+    reason?: string;
+  };
 
   // Global Utils
   resetToSeederData: () => void;
@@ -562,6 +597,42 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return saved ? JSON.parse(saved) : INITIAL_BOTTLENECK_UNITS;
   });
 
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>(() => {
+    const saved = localStorage.getItem('cp_inventory_items_v2');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return INITIAL_INVENTORY_ITEMS;
+      }
+    }
+    return INITIAL_INVENTORY_ITEMS;
+  });
+
+  const [recipeRules, setRecipeRules] = useState<VariantRecipeRule[]>(() => {
+    const saved = localStorage.getItem('cp_recipe_rules_v2');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return INITIAL_RECIPE_RULES;
+      }
+    }
+    return INITIAL_RECIPE_RULES;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('cp_inventory_items_v2', JSON.stringify(inventoryItems));
+    } catch {}
+  }, [inventoryItems]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('cp_recipe_rules_v2', JSON.stringify(recipeRules));
+    } catch {}
+  }, [recipeRules]);
+
   const [tables, setTables] = useState<Table[]>([
     { id: 1, table_number: 1, status: 'available' },
     { id: 2, table_number: 2, status: 'occupied' },
@@ -900,7 +971,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
       })
     );
 
-    // Deduct container bottlenecks (e.g., 16oz or 22oz cups)
+    // 3. Deduct container bottlenecks (legacy support)
     setBottlenecks((prevBottlenecks) =>
       prevBottlenecks.map((unit) => {
         let unitDeduct = 0;
@@ -929,8 +1000,207 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
       })
     );
 
+    // 4. Atomically decrement Dynamic Raw Inventory Items according to BOM / Recipe Rules
+    setInventoryItems((prevInventory) => {
+      const updatedInventory = prevInventory.map((item) => ({ ...item }));
+
+      orderItems.forEach((oi) => {
+        const itemSize = oi.customizations?.size || oi.size || '16oz';
+        // Match recipe rules for this specific menu item and variant size (or 'All Sizes' / 'all')
+        const matchingRules = recipeRules.filter(
+          (r) =>
+            r.menu_item_id === oi.menu_item_id &&
+            (r.variant_size.toLowerCase() === itemSize.toLowerCase() ||
+              r.variant_size.toLowerCase() === 'all' ||
+              r.variant_size.toLowerCase() === 'all sizes' ||
+              r.variant_size.toLowerCase() === 'regular')
+        );
+
+        matchingRules.forEach((rule) => {
+          const invIdx = updatedInventory.findIndex((inv) => String(inv.id) === String(rule.inventory_item_id));
+          if (invIdx !== -1) {
+            const deductUnits = rule.quantity_deducted * oi.quantity;
+            const targetItem = updatedInventory[invIdx];
+            const newStock = Math.max(0, targetItem.stock_quantity - deductUnits);
+            updatedInventory[invIdx] = { ...targetItem, stock_quantity: newStock };
+
+            newLogs.push({
+              id: Date.now() + Math.floor(Math.random() * 10000) + invIdx,
+              user_id: staffUserId,
+              user_name: staffUserId ? 'Staff Barista' : 'Automated (Payment Confirmed)',
+              menu_item_id: oi.menu_item_id,
+              add_on_id: null,
+              item_name: `${targetItem.name} [Recipe: ${oi.item_name} ${itemSize}]`,
+              change_type: 'sale',
+              quantity_changed: -deductUnits,
+              notes: `Order #${orderToken} BOM deduction: ${rule.quantity_deducted} ${targetItem.unit}/drink x ${oi.quantity}`,
+              created_at: new Date().toISOString(),
+            });
+          }
+        });
+      });
+
+      return updatedInventory;
+    });
+
     if (newLogs.length > 0) {
       setInventoryLogs((prev) => [...newLogs, ...prev]);
+    }
+  };
+
+  // Dynamic Raw Inventory CRUD & Restock Handlers
+  const addInventoryItem = (item: Omit<InventoryItem, 'id'>) => {
+    const newItem: InventoryItem = {
+      ...item,
+      id: Date.now(),
+      created_at: new Date().toISOString(),
+    };
+    setInventoryItems((prev) => [newItem, ...prev]);
+  };
+
+  const updateInventoryItem = (id: number | string, updates: Partial<InventoryItem>) => {
+    setInventoryItems((prev) =>
+      prev.map((it) => (String(it.id) === String(id) ? { ...it, ...updates, updated_at: new Date().toISOString() } : it))
+    );
+  };
+
+  const deleteInventoryItem = (id: number | string) => {
+    setInventoryItems((prev) => prev.filter((it) => String(it.id) !== String(id)));
+    // Also remove any recipe mappings referencing this raw item
+    setRecipeRules((prev) => prev.filter((r) => String(r.inventory_item_id) !== String(id)));
+  };
+
+  const restockInventoryItem = (id: number | string, qty: number, notes?: string) => {
+    let affectedName = 'Raw Inventory';
+    setInventoryItems((prev) =>
+      prev.map((it) => {
+        if (String(it.id) === String(id)) {
+          affectedName = it.name;
+          return {
+            ...it,
+            stock_quantity: it.stock_quantity + qty,
+            updated_at: new Date().toISOString(),
+          };
+        }
+        return it;
+      })
+    );
+
+    // Live inventory audit log
+    const auditLog: InventoryLog = {
+      id: Date.now() + Math.floor(Math.random() * 1000),
+      user_id: adminSession?.user?.id || 1,
+      user_name: adminSession?.user?.name || 'Administrator',
+      menu_item_id: null,
+      add_on_id: null,
+      item_name: affectedName,
+      change_type: 'restock',
+      quantity_changed: qty,
+      notes: notes || `Shipment restock +${qty} units via Admin Portal`,
+      created_at: new Date().toISOString(),
+    };
+    setInventoryLogs((prev) => [auditLog, ...prev]);
+  };
+
+  // Recipe / BOM Dynamic Linker Handlers
+  const saveRecipeRulesForVariant = (
+    menuItemId: number,
+    variantSize: string,
+    items: { inventory_item_id: number | string; quantity_deducted: number }[]
+  ) => {
+    setRecipeRules((prev) => {
+      // Remove old rules for this exact menuItem and size
+      const preserved = prev.filter(
+        (r) => !(r.menu_item_id === menuItemId && r.variant_size.toLowerCase() === variantSize.toLowerCase())
+      );
+      const created: VariantRecipeRule[] = items.map((it, idx) => ({
+        id: `rec-${menuItemId}-${variantSize}-${Date.now()}-${idx}`,
+        menu_item_id: menuItemId,
+        variant_size: variantSize,
+        inventory_item_id: it.inventory_item_id,
+        quantity_deducted: it.quantity_deducted || 1,
+      }));
+      return [...preserved, ...created];
+    });
+  };
+
+  const deleteRecipeRule = (id: number | string) => {
+    setRecipeRules((prev) => prev.filter((r) => String(r.id) !== String(id)));
+  };
+
+  // Stock Safeguards & Availability Checks
+  const checkVariantAvailability = (menuItemId: number, size?: string) => {
+    const item = menuItems.find((m) => m.id === menuItemId);
+    if (!item || !item.is_available) {
+      return { isAvailable: false, reason: 'Item is currently disabled by store management.' };
+    }
+
+    const effectiveSize = size || item.size || '16oz';
+    const matchingRules = recipeRules.filter(
+      (r) =>
+        r.menu_item_id === menuItemId &&
+        (r.variant_size.toLowerCase() === effectiveSize.toLowerCase() ||
+          r.variant_size.toLowerCase() === 'all' ||
+          r.variant_size.toLowerCase() === 'all sizes' ||
+          r.variant_size.toLowerCase() === 'regular')
+    );
+
+    for (const rule of matchingRules) {
+      const invItem = inventoryItems.find((inv) => String(inv.id) === String(rule.inventory_item_id));
+      if (invItem && invItem.stock_quantity <= 0) {
+        return {
+          isAvailable: false,
+          missingItemName: invItem.name,
+          reason: `Out of Stock: ${invItem.name} reserve is depleted (0 ${invItem.unit})`,
+          requiredItemStock: invItem.stock_quantity,
+        };
+      }
+      if (invItem && invItem.stock_quantity < rule.quantity_deducted) {
+        return {
+          isAvailable: false,
+          missingItemName: invItem.name,
+          reason: `Insufficient ${invItem.name}: Only ${invItem.stock_quantity} left (needs ${rule.quantity_deducted})`,
+          requiredItemStock: invItem.stock_quantity,
+        };
+      }
+    }
+
+    return { isAvailable: true };
+  };
+
+  const checkItemOverallAvailability = (menuItemId: number) => {
+    const item = menuItems.find((m) => m.id === menuItemId);
+    if (!item || !item.is_available) {
+      return { isAvailable: false, outOfStockVariants: [], reason: 'Disabled' };
+    }
+
+    if (item.available_sizes && item.available_sizes.length > 0) {
+      const outOfStockVariants: string[] = [];
+      let missingItemName: string | undefined;
+      for (const s of item.available_sizes) {
+        const check = checkVariantAvailability(menuItemId, s.size);
+        if (!check.isAvailable) {
+          outOfStockVariants.push(s.size);
+          if (!missingItemName && check.missingItemName) {
+            missingItemName = check.missingItemName;
+          }
+        }
+      }
+      const allOut = outOfStockVariants.length === item.available_sizes.length;
+      return {
+        isAvailable: !allOut,
+        outOfStockVariants,
+        missingItemName,
+        reason: allOut ? 'All drink variants are currently out of stock due to raw packaging/supply bottlenecks.' : undefined,
+      };
+    } else {
+      const check = checkVariantAvailability(menuItemId, item.size || 'Regular');
+      return {
+        isAvailable: check.isAvailable,
+        outOfStockVariants: check.isAvailable ? [] : [item.size || 'Regular'],
+        missingItemName: check.missingItemName,
+        reason: check.reason,
+      };
     }
   };
 
@@ -1286,9 +1556,13 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('cp_orders');
     localStorage.removeItem('cp_inv_logs');
     localStorage.removeItem('cp_spatie_roles');
+    localStorage.removeItem('cp_inventory_items_v2');
+    localStorage.removeItem('cp_recipe_rules_v2');
     setMenuItems(RAW_MENU_ITEMS);
     setAddOns(INITIAL_ADDONS);
     setBottlenecks(INITIAL_BOTTLENECK_UNITS);
+    setInventoryItems(INITIAL_INVENTORY_ITEMS);
+    setRecipeRules(INITIAL_RECIPE_RULES);
     setRolesList(INITIAL_SPATIE_ROLES);
     setCart([]);
     setCustomerScreen(1);
@@ -1365,6 +1639,16 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
         toggleMenuItemAvailability,
         restockUnit,
         restockMenuItem,
+        inventoryItems,
+        recipeRules,
+        addInventoryItem,
+        updateInventoryItem,
+        deleteInventoryItem,
+        restockInventoryItem,
+        saveRecipeRulesForVariant,
+        deleteRecipeRule,
+        checkVariantAvailability,
+        checkItemOverallAvailability,
         resetToSeederData,
       }}
     >

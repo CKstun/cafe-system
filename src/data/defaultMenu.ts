@@ -1,4 +1,4 @@
-import { MenuItem, AddOn, InventoryUnit } from '../types/cafe';
+import { MenuItem, AddOn, InventoryUnit, InventoryItem, VariantRecipeRule } from '../types/cafe';
 
 export const INITIAL_CATEGORIES = [
   'All',
@@ -30,6 +30,71 @@ export const INITIAL_BOTTLENECK_UNITS: InventoryUnit[] = [
   { id: 'oat-milk', name: 'Barista Edition Oat Milk', category: 'ingredients', unit: 'liters', current_stock: 12, minimum_threshold: 10 },
   { id: 'coffee-beans', name: 'Pepita House Espresso Blend', category: 'ingredients', unit: 'kg', current_stock: 18, minimum_threshold: 5 },
   { id: 'party-tray-box', name: 'Corrugated Party Tray Boxes', category: 'containers', unit: 'pcs', current_stock: 22, minimum_threshold: 10 },
+];
+
+export const INITIAL_INVENTORY_ITEMS: InventoryItem[] = [
+  { id: 1, name: '16oz PET Cups', stock_quantity: 420, unit: 'pcs', low_stock_threshold: 60, category: 'cups' },
+  { id: 2, name: '22oz PET Cups', stock_quantity: 18, unit: 'pcs', low_stock_threshold: 50, category: 'cups' }, // Low stock sample!
+  { id: 3, name: '12oz Hot Paper Cups', stock_quantity: 310, unit: 'pcs', low_stock_threshold: 40, category: 'cups' },
+  { id: 4, name: '16oz Flat Lids', stock_quantity: 450, unit: 'pcs', low_stock_threshold: 50, category: 'lids' },
+  { id: 5, name: '22oz Dome Lids', stock_quantity: 260, unit: 'pcs', low_stock_threshold: 50, category: 'lids' },
+  { id: 6, name: '12oz Hot Cup Lids', stock_quantity: 290, unit: 'pcs', low_stock_threshold: 40, category: 'lids' },
+  { id: 7, name: 'Standard Paper Straws', stock_quantity: 500, unit: 'pcs', low_stock_threshold: 80, category: 'straws' },
+  { id: 8, name: 'Boba Straws', stock_quantity: 180, unit: 'pcs', low_stock_threshold: 30, category: 'straws' },
+  { id: 9, name: 'Kraft Takeout Bags', stock_quantity: 340, unit: 'pcs', low_stock_threshold: 45, category: 'bags' },
+  { id: 10, name: 'Barista Oat Milk', stock_quantity: 8, unit: 'liters', low_stock_threshold: 10, category: 'ingredients' }, // Low stock!
+  { id: 11, name: 'Corrugated Party Tray Boxes', stock_quantity: 25, unit: 'pcs', low_stock_threshold: 10, category: 'containers' },
+  { id: 12, name: 'Silog Meal Clamshells', stock_quantity: 210, unit: 'pcs', low_stock_threshold: 35, category: 'containers' },
+];
+
+export const INITIAL_RECIPE_RULES: VariantRecipeRule[] = [
+  // 16oz Latte (Item #201)
+  { id: 'rec-201-16oz-1', menu_item_id: 201, variant_size: '16oz', inventory_item_id: 1, quantity_deducted: 1 }, // 16oz Cup
+  { id: 'rec-201-16oz-2', menu_item_id: 201, variant_size: '16oz', inventory_item_id: 4, quantity_deducted: 1 }, // 16oz Flat Lid
+  { id: 'rec-201-16oz-3', menu_item_id: 201, variant_size: '16oz', inventory_item_id: 7, quantity_deducted: 1 }, // Standard Straw
+
+  // 22oz Latte (Item #201)
+  { id: 'rec-201-22oz-1', menu_item_id: 201, variant_size: '22oz', inventory_item_id: 2, quantity_deducted: 1 }, // 22oz Cup
+  { id: 'rec-201-22oz-2', menu_item_id: 201, variant_size: '22oz', inventory_item_id: 5, quantity_deducted: 1 }, // 22oz Dome Lid
+  { id: 'rec-201-22oz-3', menu_item_id: 201, variant_size: '22oz', inventory_item_id: 7, quantity_deducted: 1 }, // Standard Straw
+
+  // 16oz Cappuccino (Item #202)
+  { id: 'rec-202-16oz-1', menu_item_id: 202, variant_size: '16oz', inventory_item_id: 1, quantity_deducted: 1 },
+  { id: 'rec-202-16oz-2', menu_item_id: 202, variant_size: '16oz', inventory_item_id: 4, quantity_deducted: 1 },
+  { id: 'rec-202-16oz-3', menu_item_id: 202, variant_size: '16oz', inventory_item_id: 7, quantity_deducted: 1 },
+
+  // 22oz Cappuccino (Item #202)
+  { id: 'rec-202-22oz-1', menu_item_id: 202, variant_size: '22oz', inventory_item_id: 2, quantity_deducted: 1 },
+  { id: 'rec-202-22oz-2', menu_item_id: 202, variant_size: '22oz', inventory_item_id: 5, quantity_deducted: 1 },
+  { id: 'rec-202-22oz-3', menu_item_id: 202, variant_size: '22oz', inventory_item_id: 7, quantity_deducted: 1 },
+
+  // 16oz Vanilla (Item #203)
+  { id: 'rec-203-16oz-1', menu_item_id: 203, variant_size: '16oz', inventory_item_id: 1, quantity_deducted: 1 },
+  { id: 'rec-203-16oz-2', menu_item_id: 203, variant_size: '16oz', inventory_item_id: 4, quantity_deducted: 1 },
+  { id: 'rec-203-16oz-3', menu_item_id: 203, variant_size: '16oz', inventory_item_id: 7, quantity_deducted: 1 },
+
+  // 16oz Spanish (Item #204)
+  { id: 'rec-204-16oz-1', menu_item_id: 204, variant_size: '16oz', inventory_item_id: 1, quantity_deducted: 1 },
+  { id: 'rec-204-16oz-2', menu_item_id: 204, variant_size: '16oz', inventory_item_id: 4, quantity_deducted: 1 },
+  { id: 'rec-204-16oz-3', menu_item_id: 204, variant_size: '16oz', inventory_item_id: 7, quantity_deducted: 1 },
+
+  // 12oz Americano (Item #101)
+  { id: 'rec-101-12oz-1', menu_item_id: 101, variant_size: '12oz', inventory_item_id: 3, quantity_deducted: 1 }, // 12oz Hot Paper Cup
+  { id: 'rec-101-12oz-2', menu_item_id: 101, variant_size: '12oz', inventory_item_id: 6, quantity_deducted: 1 }, // 12oz Lid
+
+  // 22oz Americano (Item #101)
+  { id: 'rec-101-22oz-1', menu_item_id: 101, variant_size: '22oz', inventory_item_id: 2, quantity_deducted: 1 }, // 22oz Cup
+  { id: 'rec-101-22oz-2', menu_item_id: 101, variant_size: '22oz', inventory_item_id: 5, quantity_deducted: 1 }, // 22oz Lid
+  { id: 'rec-101-22oz-3', menu_item_id: 101, variant_size: '22oz', inventory_item_id: 7, quantity_deducted: 1 },
+
+  // Breakfast Sisilog (Item #801)
+  { id: 'rec-801-reg-1', menu_item_id: 801, variant_size: 'Regular', inventory_item_id: 12, quantity_deducted: 1 }, // Meal Clamshell
+  { id: 'rec-801-reg-2', menu_item_id: 801, variant_size: 'Regular', inventory_item_id: 9, quantity_deducted: 1 }, // Kraft Bag
+
+  // Party Trays
+  { id: 'rec-901-tray-1', menu_item_id: 901, variant_size: 'Tray', inventory_item_id: 11, quantity_deducted: 1 }, // Party tray box
+  { id: 'rec-902-tray-1', menu_item_id: 902, variant_size: 'Tray', inventory_item_id: 11, quantity_deducted: 1 },
+  { id: 'rec-903-tray-1', menu_item_id: 903, variant_size: 'Tray', inventory_item_id: 11, quantity_deducted: 1 },
 ];
 
 export const RAW_MENU_ITEMS: MenuItem[] = [

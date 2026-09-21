@@ -187,3 +187,40 @@ export interface InventoryUnit {
   minimum_threshold: number;
   cost_per_unit?: number;
 }
+
+export interface InventoryItem {
+  id: number | string;
+  name: string;
+  stock_quantity: number;
+  unit: string; // 'pcs' | 'ml' | 'grams' | 'liters' | 'kg'
+  low_stock_threshold: number;
+  category?: 'packaging' | 'cups' | 'lids' | 'straws' | 'bags' | 'ingredients' | 'containers' | string;
+  cost_per_unit?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ProductVariant {
+  id: number;
+  menu_item_id: number;
+  size: string; // e.g., '12oz', '16oz', '22oz', 'Regular', 'Tray'
+  price: number;
+  oat_price?: number;
+  is_available?: boolean;
+}
+
+export interface ProductVariantInventory {
+  id: number | string;
+  product_variant_id: number | string;
+  inventory_item_id: number | string;
+  quantity_deducted: number;
+  inventory_item?: InventoryItem;
+}
+
+export interface VariantRecipeRule {
+  id: number | string;
+  menu_item_id: number;
+  variant_size: string; // '12oz', '16oz', '22oz', 'All Sizes', etc.
+  inventory_item_id: number | string;
+  quantity_deducted: number;
+}

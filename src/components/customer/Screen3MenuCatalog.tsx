@@ -20,6 +20,7 @@ export const Screen3MenuCatalog: React.FC<Screen3MenuCatalogProps> = ({ onSelect
     setCustomerScreen,
     setActiveTrackingToken,
     navigate,
+    checkItemOverallAvailability,
   } = useCafe();
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -163,73 +164,96 @@ export const Screen3MenuCatalog: React.FC<Screen3MenuCatalogProps> = ({ onSelect
 
       {/* Adaptive Menu Grid View (Breakpoint-based: mobile 1-col, tablet 2-3 col, desktop 4-col) */}
       <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {filteredItems.map((item) => (
-          <div
-            key={item.id}
-            onClick={() => onSelectItem(item)}
-            className="bg-white rounded-3xl p-3.5 shadow-xs flex flex-row md:flex-col justify-between gap-3.5 transition duration-200 hover:shadow-md cursor-pointer border border-[#EADBCE]/50 group"
-          >
-            {/* Left / Top Image */}
-            <div className="w-28 h-28 sm:w-32 sm:h-32 md:w-full md:h-44 rounded-2xl bg-[#EFE7DC] flex items-center justify-center shrink-0 overflow-hidden relative">
-              {item.image_path ? (
-                <img
-                  src={item.image_path}
-                  alt={item.name}
-                  loading="lazy"
-                  className="w-full h-full object-cover rounded-2xl transition duration-300 group-hover:scale-105"
-                  onError={(e) => {
-                    // Fallback to "No Image" container on image error
-                    e.currentTarget.style.display = 'none';
-                    if (e.currentTarget.nextElementSibling) {
-                      (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex';
-                    }
-                  }}
-                />
-              ) : null}
-              <div
-                className={`w-full h-full flex items-center justify-center ${
-                  item.image_path ? 'hidden' : 'flex'
-                }`}
-              >
-                <span className="text-xs font-medium text-[#A69485]">
-                  No Image
-                </span>
-              </div>
-            </div>
+        {filteredItems.map((item) => {
+          const overallAvail = checkItemOverallAvailability(item.id);
+          const isSoldOut = !overallAvail.isAvailable;
 
-            {/* Item Info & Price / Add CTA */}
-            <div className="flex-1 flex flex-col justify-between self-stretch py-0.5">
-              <div>
-                <h3 className="font-bold text-sm sm:text-base text-[#3B2215] leading-snug group-hover:text-[#5C3D2E] transition-colors">
-                  {item.name}
-                </h3>
-                {item.description && (
-                  <p className="text-[11px] text-[#8C7465] line-clamp-2 mt-1 leading-relaxed">
-                    {item.description}
-                  </p>
+          return (
+            <div
+              key={item.id}
+              onClick={() => onSelectItem(item)}
+              className={`bg-white rounded-3xl p-3.5 shadow-xs flex flex-row md:flex-col justify-between gap-3.5 transition duration-200 hover:shadow-md cursor-pointer border border-[#EADBCE]/50 group relative ${
+                isSoldOut ? 'opacity-75' : ''
+              }`}
+            >
+              {/* Left / Top Image */}
+              <div className="w-28 h-28 sm:w-32 sm:h-32 md:w-full md:h-44 rounded-2xl bg-[#EFE7DC] flex items-center justify-center shrink-0 overflow-hidden relative">
+                {item.image_path ? (
+                  <img
+                    src={item.image_path}
+                    alt={item.name}
+                    loading="lazy"
+                    className="w-full h-full object-cover rounded-2xl transition duration-300 group-hover:scale-105"
+                    onError={(e) => {
+                      // Fallback to "No Image" container on image error
+                      e.currentTarget.style.display = 'none';
+                      if (e.currentTarget.nextElementSibling) {
+                        (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex';
+                      }
+                    }}
+                  />
+                ) : null}
+                <div
+                  className={`w-full h-full flex items-center justify-center ${
+                    item.image_path ? 'hidden' : 'flex'
+                  }`}
+                >
+                  <span className="text-xs font-medium text-[#A69485]">
+                    No Image
+                  </span>
+                </div>
+
+                {/* Sold Out Overlay */}
+                {isSoldOut && (
+                  <div className="absolute inset-0 bg-black/55 backdrop-blur-[1px] flex flex-col items-center justify-center p-2 text-center">
+                    <span className="px-2.5 py-1 bg-red-600 text-white text-[10px] font-extrabold uppercase rounded-full tracking-wider shadow-xs">
+                      Sold Out
+                    </span>
+                    <span className="text-[9px] text-white/90 mt-1 font-medium line-clamp-1">
+                      {overallAvail.missingItemName ? `No ${overallAvail.missingItemName}` : 'Unavailable'}
+                    </span>
+                  </div>
                 )}
               </div>
 
-              {/* Price and Plus Button */}
-              <div className="flex items-center justify-between mt-3 pt-1">
-                <span className="font-bold text-sm sm:text-base font-mono text-[#3B2215]">
-                  ₱{item.price.toFixed(2)}
-                </span>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSelectItem(item);
-                  }}
-                  className="w-11 h-9 rounded-2xl bg-[#5C3D2E] hover:bg-[#4A2F22] active:bg-[#3D261B] active:scale-95 text-white flex items-center justify-center shadow-xs transition cursor-pointer"
-                  aria-label={`Add ${item.name}`}
-                >
-                  <Plus className="w-4 h-4 text-white stroke-[2.5]" />
-                </button>
+              {/* Item Info & Price / Add CTA */}
+              <div className="flex-1 flex flex-col justify-between self-stretch py-0.5">
+                <div>
+                  <h3 className="font-bold text-sm sm:text-base text-[#3B2215] leading-snug group-hover:text-[#5C3D2E] transition-colors">
+                    {item.name}
+                  </h3>
+                  {item.description && (
+                    <p className="text-[11px] text-[#8C7465] line-clamp-2 mt-1 leading-relaxed">
+                      {item.description}
+                    </p>
+                  )}
+                </div>
+
+                {/* Price and Plus Button */}
+                <div className="flex items-center justify-between mt-3 pt-1">
+                  <span className="font-bold text-sm sm:text-base font-mono text-[#3B2215]">
+                    ₱{item.price.toFixed(2)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSelectItem(item);
+                    }}
+                    className={`w-11 h-9 rounded-2xl flex items-center justify-center shadow-xs transition cursor-pointer ${
+                      isSoldOut
+                        ? 'bg-stone-200 text-stone-400 hover:bg-stone-300'
+                        : 'bg-[#5C3D2E] hover:bg-[#4A2F22] active:bg-[#3D261B] active:scale-95 text-white'
+                    }`}
+                    aria-label={`Add ${item.name}`}
+                  >
+                    <Plus className="w-4 h-4 stroke-[2.5]" />
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         {filteredItems.length === 0 && (
           <div className="col-span-full py-16 text-center px-4 bg-white rounded-3xl border border-[#EADBCE]/50">

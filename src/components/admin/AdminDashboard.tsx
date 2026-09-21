@@ -24,11 +24,16 @@ import {
 } from 'lucide-react';
 import { User as UserType, MenuItem, Role } from '../../types/cafe';
 import { SpatieRolesTab } from './SpatieRolesTab';
+import { InventoryManager } from './InventoryManager';
+import { RecipeLinker } from './RecipeLinker';
 
 export const AdminDashboard: React.FC = () => {
   const {
     menuItems,
     bottlenecks,
+    inventoryItems,
+    recipeRules,
+    checkItemOverallAvailability,
     staffUsers,
     orders,
     inventoryLogs,
@@ -47,17 +52,25 @@ export const AdminDashboard: React.FC = () => {
     navigate,
   } = useCafe();
 
-  const [activeTab, setActiveTab] = useState<'analytics' | 'staff' | 'roles' | 'products' | 'inventory'>(() => {
+  const [activeTab, setActiveTab] = useState<'analytics' | 'staff' | 'roles' | 'products' | 'inventory' | 'recipes'>(() => {
     if (typeof window !== 'undefined') {
       const path = window.location.pathname;
+      if (path.includes('recipe')) return 'recipes';
       if (path.includes('inventory')) return 'inventory';
-      if (path.includes('products') || path.includes('categories')) return 'products';
+      if (path.includes('products') || path.includes('categories') || path.includes('menu')) return 'products';
       if (path.includes('staff')) return 'staff';
       if (path.includes('roles')) return 'roles';
       if (path.includes('analytics')) return 'analytics';
     }
     return 'analytics';
   });
+
+  const [recipeLinkerItemId, setRecipeLinkerItemId] = useState<number | undefined>(undefined);
+
+  // Low stock counter for header/tab badge
+  const lowOrDepletedRawCount = useMemo(() => {
+    return inventoryItems.filter((it) => it.stock_quantity <= it.low_stock_threshold).length;
+  }, [inventoryItems]);
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
@@ -315,7 +328,8 @@ export const AdminDashboard: React.FC = () => {
                   { id: 'staff', label: 'Staff Accounts CRUD', icon: Users },
                   { id: 'roles', label: 'Roles & Permissions (Spatie)', icon: KeyRound },
                   { id: 'products', label: 'Menu Catalog Management', icon: Coffee },
-                  { id: 'inventory', label: 'Unit Bottlenecks & Logs', icon: Package },
+                  { id: 'inventory', label: 'Raw Inventory & Bottlenecks', icon: Package, badge: lowOrDepletedRawCount },
+                  { id: 'recipes', label: 'Recipe / BOM Linker', icon: Layers },
                 ].map((tab) => {
                   const Icon = tab.icon;
                   const isActive = activeTab === tab.id;
@@ -327,14 +341,21 @@ export const AdminDashboard: React.FC = () => {
                         navigate(`/admin/${tab.id}`);
                         setIsDrawerOpen(false);
                       }}
-                      className={`w-full min-h-[44px] flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-left transition-colors ${
+                      className={`w-full min-h-[44px] flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-left transition-colors ${
                         isActive
                           ? 'bg-[#5C4033] text-[#FDFBF7] shadow-sm'
                           : 'bg-white hover:bg-[#EFE8E1] text-[#736357] border border-[#E6DDD4]/60'
                       }`}
                     >
-                      <Icon className="w-4 h-4 shrink-0" />
-                      <span>{tab.label}</span>
+                      <div className="flex items-center gap-3">
+                        <Icon className="w-4 h-4 shrink-0" />
+                        <span>{tab.label}</span>
+                      </div>
+                      {tab.badge && tab.badge > 0 ? (
+                        <span className="bg-red-500 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full">
+                          {tab.badge}
+                        </span>
+                      ) : null}
                     </button>
                   );
                 })}
@@ -369,7 +390,8 @@ export const AdminDashboard: React.FC = () => {
             { id: 'staff', label: 'Staff Accounts CRUD', icon: Users },
             { id: 'roles', label: 'Roles & Permissions (Spatie)', icon: KeyRound },
             { id: 'products', label: 'Menu Catalog Management', icon: Coffee },
-            { id: 'inventory', label: 'Unit Bottlenecks & Logs', icon: Package },
+            { id: 'inventory', label: 'Raw Inventory & Bottlenecks', icon: Package, badge: lowOrDepletedRawCount },
+            { id: 'recipes', label: 'Recipe / BOM Linker', icon: Layers },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -388,6 +410,11 @@ export const AdminDashboard: React.FC = () => {
               >
                 <Icon className="w-4 h-4" />
                 <span>{tab.label}</span>
+                {tab.badge && tab.badge > 0 ? (
+                  <span className="bg-red-500 text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                    {tab.badge}
+                  </span>
+                ) : null}
               </button>
             );
           })}
@@ -656,7 +683,20 @@ export const AdminDashboard: React.FC = () => {
                               className="w-10 h-10 rounded-xl object-cover border border-[#E6DDD4]"
                             />
                             <div>
-                              <p className="font-bold text-[#2B231F]">{item.name}</p>
+                              <p className="font-bold text-[#2B231F] flex items-center gap-2">
+                                <span>{item.name}</span>
+                                {(() => {
+                                  const avail = checkItemOverallAvailability(item.id);
+                                  if (!avail.isAvailable) {
+                                    return (
+                                      <span className="text-[9px] bg-red-100 text-red-700 border border-red-200 px-1.5 py-0.5 rounded font-bold">
+                                        Bottleneck Out: {avail.missingItemName || 'Depleted'}
+                                      </span>
+                                    );
+                                  }
+                                  return null;
+                                })()}
+                              </p>
                               <p className="text-[10px] text-[#8C7A6B] line-clamp-1">
                                 {item.description}
                               </p>
@@ -694,6 +734,18 @@ export const AdminDashboard: React.FC = () => {
                         </td>
                         <td className="py-3.5 px-4 text-right space-x-1">
                           <button
+                            type="button"
+                            onClick={() => {
+                              setRecipeLinkerItemId(item.id);
+                              setActiveTab('recipes');
+                              navigate('/admin/recipes');
+                            }}
+                            className="p-1.5 hover:bg-[#EFE8E1] text-[#5C4033] rounded-full transition"
+                            title="Configure Recipe / BOM Requirements"
+                          >
+                            <Layers className="w-3.5 h-3.5" />
+                          </button>
+                          <button
                             onClick={() => {
                               setRestockTargetItemId(item.id);
                               setRestockTargetUnitId(null);
@@ -730,121 +782,37 @@ export const AdminDashboard: React.FC = () => {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 4: UNIT BOTTLENECK INVENTORY & AUDIT LOGS */}
+        {/* TAB 4: RAW INVENTORY MANAGER & BOTTLENECK AUDIT LOGS */}
         {/* ========================================================================= */}
         {activeTab === 'inventory' && (
-          <div className="mt-6 space-y-6">
-            {/* Low Stock Warning Banner */}
-            {lowStockBottlenecks.length > 0 && (
-              <div className="p-4 bg-rose-50 border-2 border-rose-200 rounded-3xl flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
-                <div className="text-xs">
-                  <h4 className="font-bold text-rose-900">
-                    Low Stock Notification: Critical Packaging & Ingredient Bottlenecks
-                  </h4>
-                  <p className="text-rose-700 mt-0.5">
-                    The following supplies have reached or fallen below safety thresholds. Restock immediately to prevent service disruptions:
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {lowStockBottlenecks.map((unit) => (
-                      <span
-                        key={unit.id}
-                        className="bg-white border border-rose-300 text-rose-800 px-3 py-1 rounded-full font-bold text-[11px]"
-                      >
-                        {unit.name}: {unit.current_stock} {unit.unit} (Min: {unit.minimum_threshold})
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
+          <div className="mt-6 space-y-8">
+            {/* Dynamic Self-Serve Inventory Manager Component */}
+            <InventoryManager
+              onOpenRecipeLinker={(menuItemId) => {
+                if (menuItemId) setRecipeLinkerItemId(menuItemId);
+                setActiveTab('recipes');
+                navigate('/admin/recipes');
+              }}
+            />
 
-            {/* Packaging & Bottlenecks Units Table */}
-            <div>
-              <div className="flex items-center justify-between mb-3">
+            {/* Live Inventory Audit Logs (`inventory_logs`) */}
+            <div className="bg-white p-6 rounded-3xl border border-stone-200/80 shadow-xs">
+              <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="font-display text-base font-bold text-[#2B231F]">
-                    Unit Bottleneck Inventory
+                  <h3 className="font-bold text-stone-900 text-sm flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-[#5C4033]" />
+                    Live System Inventory Audit Logs (`inventory_logs`)
                   </h3>
-                  <p className="text-xs text-[#8C7A6B]">
-                    Tracks container bottlenecks (16oz, 22oz cups) and ingredient reserves deducted atomically when orders are paid.
+                  <p className="text-xs text-stone-500 mt-0.5">
+                    Immutable history of automated order deductions, manual restocks, and adjustments.
                   </p>
                 </div>
               </div>
 
-              <div className="bg-[#FDFBF7] rounded-3xl border border-[#EFE8E1] overflow-hidden shadow-xs">
+              <div className="rounded-2xl border border-stone-200/80 overflow-hidden">
                 <table className="w-full text-xs text-left">
                   <thead>
-                    <tr className="bg-[#F4EFEB] border-b border-[#E6DDD4] text-[#8C7A6B] uppercase tracking-wider text-[10px]">
-                      <th className="py-3 px-4 font-semibold">Unit Name</th>
-                      <th className="py-3 px-4 font-semibold">Category</th>
-                      <th className="py-3 px-4 font-semibold">Current Stock</th>
-                      <th className="py-3 px-4 font-semibold">Min Threshold</th>
-                      <th className="py-3 px-4 font-semibold">Status</th>
-                      <th className="py-3 px-4 font-semibold text-right">Quick Restock</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#F4EFEB]">
-                    {bottlenecks.map((unit) => {
-                      const isLow = unit.current_stock <= unit.minimum_threshold;
-                      return (
-                        <tr key={unit.id} className="hover:bg-[#F4EFEB]/40">
-                          <td className="py-3.5 px-4 font-bold text-[#2B231F]">{unit.name}</td>
-                          <td className="py-3.5 px-4">
-                            <span className="bg-[#EFE8E1] text-[#5C4033] px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase">
-                              {unit.category}
-                            </span>
-                          </td>
-                          <td className="py-3.5 px-4 font-mono font-bold text-sm">
-                            <span className={isLow ? 'text-rose-600' : 'text-[#2B231F]'}>
-                              {unit.current_stock}
-                            </span>{' '}
-                            <span className="text-xs font-normal text-[#8C7A6B]">{unit.unit}</span>
-                          </td>
-                          <td className="py-3.5 px-4 text-[#8C7A6B]">
-                            {unit.minimum_threshold} {unit.unit}
-                          </td>
-                          <td className="py-3.5 px-4">
-                            {isLow ? (
-                              <span className="bg-rose-100 text-rose-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                                Low Stock
-                              </span>
-                            ) : (
-                              <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                                In Stock
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-3.5 px-4 text-right">
-                            <button
-                              onClick={() => {
-                                setRestockTargetUnitId(unit.id);
-                                setRestockTargetItemId(null);
-                                setRestockQty(50);
-                                setShowRestockModal(true);
-                              }}
-                              className="px-3 py-1 bg-[#5C4033] text-[#FDFBF7] text-xs font-bold rounded-full hover:bg-[#4A3328]"
-                            >
-                              + Restock
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Inventory Audit Logs Table */}
-            <div>
-              <h3 className="font-display text-base font-bold text-[#2B231F] mb-3">
-                Live Inventory Audit Logs (`inventory_logs`)
-              </h3>
-              <div className="bg-[#FDFBF7] rounded-3xl border border-[#EFE8E1] overflow-hidden shadow-xs">
-                <table className="w-full text-xs text-left">
-                  <thead>
-                    <tr className="bg-[#F4EFEB] border-b border-[#E6DDD4] text-[#8C7A6B] uppercase tracking-wider text-[10px]">
+                    <tr className="bg-stone-50 border-b border-stone-200 text-stone-500 uppercase tracking-wider text-[10px]">
                       <th className="py-3 px-4 font-semibold">Timestamp</th>
                       <th className="py-3 px-4 font-semibold">User</th>
                       <th className="py-3 px-4 font-semibold">Item Affected</th>
@@ -853,13 +821,13 @@ export const AdminDashboard: React.FC = () => {
                       <th className="py-3 px-4 font-semibold">Notes</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#F4EFEB]">
+                  <tbody className="divide-y divide-stone-100">
                     {inventoryLogs.slice(0, 15).map((log) => (
-                      <tr key={log.id} className="hover:bg-[#F4EFEB]/40">
-                        <td className="py-3 px-4 text-[#8C7A6B] font-mono text-[11px]">
+                      <tr key={log.id} className="hover:bg-stone-50/60">
+                        <td className="py-3 px-4 text-stone-500 font-mono text-[11px]">
                           {new Date(log.created_at).toLocaleString()}
                         </td>
-                        <td className="py-3 px-4 font-semibold text-[#2B231F]">
+                        <td className="py-3 px-4 font-semibold text-stone-800">
                           {log.user_name || 'System'}
                         </td>
                         <td className="py-3 px-4 font-bold text-[#5C4033]">{log.item_name}</td>
@@ -883,13 +851,28 @@ export const AdminDashboard: React.FC = () => {
                         >
                           {log.quantity_changed > 0 ? `+${log.quantity_changed}` : log.quantity_changed}
                         </td>
-                        <td className="py-3 px-4 text-[#736357] italic text-[11px]">{log.notes}</td>
+                        <td className="py-3 px-4 text-stone-600 italic text-[11px]">{log.notes}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB 5: RECIPE / BOM LINKER */}
+        {/* ========================================================================= */}
+        {activeTab === 'recipes' && (
+          <div className="mt-6">
+            <RecipeLinker
+              initialMenuItemId={recipeLinkerItemId}
+              onOpenInventory={() => {
+                setActiveTab('inventory');
+                navigate('/admin/inventory');
+              }}
+            />
           </div>
         )}
       </div>
