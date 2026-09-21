@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useCafe } from '../../context/CafeContext';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, AlertCircle, CheckCircle2 } from 'lucide-react';
+
+const PH_PHONE_REGEX = /^09\d{9}$/;
 
 export const ScreenDeliveryDetails: React.FC = () => {
   const {
@@ -16,27 +18,43 @@ export const ScreenDeliveryDetails: React.FC = () => {
   const [cityRegion, setCityRegion] = useState(deliveryDetails?.city_region || '');
   const [postalCode, setPostalCode] = useState(deliveryDetails?.postal_code || '');
   const [contactNumber, setContactNumber] = useState(deliveryDetails?.contact_number || '');
+  const [phoneTouched, setPhoneTouched] = useState<boolean>(false);
   const [driverNotes, setDriverNotes] = useState(deliveryDetails?.driver_notes || '');
 
   // Calculate totals
   const totalItemCount = cart.reduce((acc, curr) => acc + curr.quantity, 0);
   const totalAmount = cart.reduce((acc, curr) => acc + curr.price * curr.quantity, 0);
 
-  // Validation: Address, City/Region, Postal Code, and Contact Number are required
+  // Cleaned contact digits
+  const cleanedPhone = contactNumber.trim();
+  const isPhoneValid = PH_PHONE_REGEX.test(cleanedPhone);
+  const showPhoneError = phoneTouched && cleanedPhone.length > 0 && !isPhoneValid;
+
+  // Validation: Address, City/Region, Postal Code, and Valid PH Mobile Phone Number
   const isFormValid =
     address.trim().length > 0 &&
     cityRegion.trim().length > 0 &&
     postalCode.trim().length > 0 &&
-    contactNumber.trim().length > 0;
+    isPhoneValid;
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Only accept numeric input, max 11 digits
+    const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 11);
+    setContactNumber(digitsOnly);
+  };
 
   const handleContinue = () => {
+    setPhoneTouched(true);
+    if (!isPhoneValid) {
+      return;
+    }
     if (!isFormValid) return;
 
     setDeliveryDetails({
       address: address.trim(),
       city_region: cityRegion.trim(),
       postal_code: postalCode.trim(),
-      contact_number: contactNumber.trim(),
+      contact_number: cleanedPhone,
       driver_notes: driverNotes.trim() || undefined,
     });
 
@@ -116,18 +134,48 @@ export const ScreenDeliveryDetails: React.FC = () => {
             </div>
           </div>
 
-          {/* CONTACT NUMBER (Required) */}
+          {/* CONTACT NUMBER (Strict 11-digit Philippine mobile starting with 09) */}
           <div>
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-[#8C7465] mb-1.5">
-              CONTACT NUMBER
-            </label>
-            <input
-              type="tel"
-              value={contactNumber}
-              onChange={(e) => setContactNumber(e.target.value)}
-              placeholder="e.g. +63 917 123 4567"
-              className="w-full rounded-2xl bg-[#F2EBE5] px-4 py-3 text-xs text-[#3B2215] placeholder-[#A8988B] border-0 focus:outline-none focus:ring-2 focus:ring-[#5A3825] transition shadow-2xs"
-            />
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-[#8C7465]">
+                CONTACT NUMBER (PHILIPPINE MOBILE) <span className="text-red-500">*</span>
+              </label>
+              <span className="text-[10px] font-mono text-[#8C7465]">
+                {cleanedPhone.length}/11 digits
+              </span>
+            </div>
+            <div className="relative">
+              <input
+                type="tel"
+                value={contactNumber}
+                onChange={handlePhoneChange}
+                onBlur={() => setPhoneTouched(true)}
+                maxLength={11}
+                placeholder="09171234567"
+                className={`w-full rounded-2xl bg-[#F2EBE5] px-4 py-3 text-xs font-mono text-[#3B2215] placeholder-[#A8988B] border transition shadow-2xs focus:outline-none focus:ring-2 ${
+                  showPhoneError
+                    ? 'border-red-400 focus:ring-red-500 bg-red-50/30'
+                    : isPhoneValid
+                    ? 'border-emerald-300 focus:ring-emerald-600'
+                    : 'border-transparent focus:ring-[#5A3825]'
+                }`}
+              />
+              {isPhoneValid && (
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 absolute right-3.5 top-3" />
+              )}
+            </div>
+
+            {/* Inline Validation Error Message */}
+            {showPhoneError ? (
+              <div className="flex items-center gap-1.5 text-xs text-red-600 font-semibold mt-1.5">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                <span>Please enter a valid 11-digit Philippine mobile number starting with 09</span>
+              </div>
+            ) : (
+              <p className="text-[10px] text-[#8C7465] mt-1">
+                Must be an 11-digit number starting with 09 (e.g., 09171234567).
+              </p>
+            )}
           </div>
 
           {/* DRIVER NOTES (OPTIONAL) */}

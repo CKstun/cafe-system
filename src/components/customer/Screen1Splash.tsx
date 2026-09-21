@@ -9,9 +9,12 @@ export const Screen1Splash: React.FC = () => {
     <div className="flex-1 flex flex-col items-center justify-center min-h-[560px] px-6 py-12 text-center bg-[#F4ECE1] text-[#3B2215] relative select-none">
       {/* Center Brand Identity */}
       <div className="flex flex-col items-center max-w-xs w-full">
-        {/* Circular White Sticker Badge with Soft Drop Shadow */}
-        <div className="w-60 h-60 sm:w-64 sm:h-64 rounded-full bg-white shadow-[0_12px_30px_-6px_rgba(0,0,0,0.12)] flex items-center justify-center p-3 mb-8 transition-transform duration-300 hover:scale-[1.02]">
-          <CafeLogo size={240} className="w-full h-full" showBorder={true} />
+        {/* Circular White Sticker Badge with Soft Drop Shadow (Non-interactive branding) */}
+        <div
+          aria-hidden="true"
+          className="w-60 h-60 sm:w-64 sm:h-64 rounded-full bg-white shadow-[0_12px_30px_-6px_rgba(0,0,0,0.12)] flex items-center justify-center p-3 mb-8 pointer-events-none select-none"
+        >
+          <CafeLogo size={240} className="w-full h-full pointer-events-none" showBorder={true} />
         </div>
 
         {/* Tracked-out Slogan: SIP THE MOMENT */}

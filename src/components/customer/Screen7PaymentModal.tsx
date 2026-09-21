@@ -1,51 +1,44 @@
 import React, { useState } from 'react';
 import { useCafe } from '../../context/CafeContext';
-import { ChevronLeft, Banknote, QrCode, ShieldCheck, CheckCircle2, AlertCircle } from 'lucide-react';
+import { ChevronLeft, Banknote, QrCode, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { PaymentMethod } from '../../types/cafe';
+import { PaymentGCash } from './PaymentGCash';
 
 export const Screen7PaymentModal: React.FC = () => {
   const { cart, placeOrder, setCustomerScreen, customerName, orderType, navigate } = useCafe();
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
-  const [gcashRef, setGcashRef] = useState<string>('');
-  const [touchedRef, setTouchedRef] = useState<boolean>(false);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
 
   const subtotal = cart.reduce((acc, curr) => acc + curr.price * curr.quantity, 0);
 
-  // Validation rules for GCash reference:
-  // Must be filled, 6-20 characters, NO spaces
-  const trimmedRef = gcashRef.trim();
-  const hasSpaces = /\s/.test(gcashRef);
-  const isLengthValid = gcashRef.length >= 6 && gcashRef.length <= 20;
-  const isGcashValid = paymentMethod === 'cash' || (gcashRef.length > 0 && isLengthValid && !hasSpaces);
+  // Validation rules:
+  // Cash is always valid
+  // GCash (online) requires mandatory Proof of Payment image upload
+  const isPaymentValid = paymentMethod === 'cash' || (paymentMethod === 'online' && Boolean(receiptPreview));
 
-  const getValidationError = () => {
-    if (paymentMethod !== 'online') return null;
-    if (!gcashRef) {
-      return touchedRef ? 'GCash reference number is required to place your order.' : null;
+  const handleReceiptChange = (file: File | null, previewUrl: string | null) => {
+    setReceiptFile(file);
+    setReceiptPreview(previewUrl);
+    if (previewUrl) {
+      setUploadError(null);
     }
-    if (hasSpaces) {
-      return 'Reference number must not contain any spaces.';
-    }
-    if (gcashRef.length < 6) {
-      return `Reference number is too short (${gcashRef.length}/6 characters minimum).`;
-    }
-    if (gcashRef.length > 20) {
-      return `Reference number exceeds 20 characters maximum.`;
-    }
-    return null;
   };
 
-  const validationError = getValidationError();
-
   const handleConfirmOrder = () => {
-    setTouchedRef(true);
-    if (!isGcashValid) return;
+    if (paymentMethod === 'online' && !receiptPreview) {
+      setUploadError('Proof of Payment image upload is mandatory for GCash transactions.');
+      return;
+    }
 
     setIsProcessing(true);
     setTimeout(() => {
-      placeOrder(paymentMethod, gcashRef);
+      // Pass the uploaded receipt preview/dataURL or simulated storage path to placeOrder
+      const receiptPath = receiptPreview || undefined;
+      placeOrder(paymentMethod, receiptPath);
       setIsProcessing(false);
       navigate('/order-status');
     }, 400);
@@ -163,73 +156,16 @@ export const Screen7PaymentModal: React.FC = () => {
           </div>
         </div>
 
-        {/* Dedicated Centered QR and Reference Code Section for GCash */}
+        {/* Dedicated Centered QR and Proof of Payment Upload Dropzone for GCash */}
         {paymentMethod === 'online' && (
-          <div className="mt-4 p-5 bg-[#F4EFEB] rounded-3xl border border-[#E6DDD4] shadow-xs text-center space-y-3 animate-in fade-in duration-200">
-            <div className="space-y-0.5">
-              <span className="text-[10px] uppercase font-bold tracking-widest text-[#5C4033]">
-                Official Merchant QR
-              </span>
-              <p className="text-xs font-bold text-[#2B231F]">
-                Scan to Pay ₱{subtotal.toFixed(2)}
-              </p>
-            </div>
-
-            {/* Centered QR Code */}
-            <div className="flex flex-col items-center justify-center w-full py-1">
-              <div className="w-44 h-44 bg-white mx-auto border-2 border-[#5C4033]/20 rounded-2xl flex items-center justify-center p-2 shadow-sm">
-                <img
-                  src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=GCASH-PAYMENT-CAFEPITA-ORDER"
-                  alt="Café Pepita GCash QR Code"
-                  className="w-full h-full object-contain rounded-lg"
-                />
-              </div>
-              <p className="text-[10px] text-[#8C7A6B] mt-1.5">
-                Account: <strong className="text-[#2B231F]">Café Pepita (0917-XXX-4567)</strong>
-              </p>
-            </div>
-
-            {/* Reference Number Field */}
-            <div className="text-left pt-1">
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#5C4033]">
-                  GCash Reference Number <span className="text-red-600">*</span>
-                </label>
-                <span className="text-[10px] text-[#8C7A6B] font-mono">
-                  {gcashRef.length}/20 chars
-                </span>
-              </div>
-              <input
-                type="text"
-                value={gcashRef}
-                onBlur={() => setTouchedRef(true)}
-                onChange={(e) => {
-                  // Strip whitespace on paste/type
-                  const val = e.target.value.replace(/\s+/g, '');
-                  setGcashRef(val);
-                  setTouchedRef(true);
-                }}
-                placeholder="6-20 characters, no spaces"
-                className={`w-full px-4 py-3 bg-[#FDFBF7] border rounded-xl text-xs font-mono text-[#2B231F] placeholder-[#A6978A] focus:outline-none focus:ring-2 transition ${
-                  validationError
-                    ? 'border-red-400 focus:ring-red-500'
-                    : 'border-[#E6DDD4] focus:ring-[#5C4033]'
-                }`}
-              />
-
-              {/* Validation Feedback */}
-              {validationError ? (
-                <div className="flex items-center gap-1.5 text-xs text-[#DC2626] font-semibold mt-1.5">
-                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                  <span>{validationError}</span>
-                </div>
-              ) : (
-                <p className="text-[10px] text-[#8C7A6B] mt-1">
-                  Reference number is found on your GCash transaction receipt (6 to 20 digits/letters, no spaces).
-                </p>
-              )}
-            </div>
-          </div>
+          <PaymentGCash
+            subtotal={subtotal}
+            receiptFile={receiptFile}
+            receiptPreview={receiptPreview}
+            onReceiptChange={handleReceiptChange}
+            uploadError={uploadError}
+            setUploadError={setUploadError}
+          />
         )}
       </div>
 
@@ -244,9 +180,9 @@ export const Screen7PaymentModal: React.FC = () => {
         <button
           type="button"
           onClick={handleConfirmOrder}
-          disabled={isProcessing || !isGcashValid}
+          disabled={isProcessing || !isPaymentValid}
           className={`w-full py-3.5 px-6 font-bold rounded-2xl text-sm sm:text-base shadow-md transition flex items-center justify-center gap-2 transform active:scale-98 ${
-            !isGcashValid
+            !isPaymentValid
               ? 'bg-[#D8C7BA] text-white/90 cursor-not-allowed shadow-none'
               : 'bg-[#5C3D2E] hover:bg-[#4A2F22] active:bg-[#3D261B] text-white cursor-pointer shadow-md'
           }`}
@@ -257,8 +193,8 @@ export const Screen7PaymentModal: React.FC = () => {
             <>
               <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
               <span>
-                {!isGcashValid && paymentMethod === 'online'
-                  ? 'Enter Reference Number to Place Order'
+                {!isPaymentValid && paymentMethod === 'online'
+                  ? 'Upload Proof of Payment to Continue'
                   : `Confirm & Place Order (₱${subtotal.toFixed(2)})`}
               </span>
             </>

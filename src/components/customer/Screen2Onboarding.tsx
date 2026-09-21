@@ -51,13 +51,12 @@ export const Screen2Onboarding: React.FC = () => {
           <span>Back</span>
         </button>
 
-        {/* Circular White Sticker Badge with Soft Drop Shadow (Clickable to /welcome) */}
+        {/* Circular White Sticker Badge with Soft Drop Shadow (Non-clickable & decorative branding) */}
         <div
-          onClick={handleGoWelcome}
-          title="Café Pepita — Return to Welcome Screen"
-          className="w-48 h-48 sm:w-52 sm:h-52 mx-auto rounded-full bg-white shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] flex items-center justify-center p-2.5 mb-5 transition-transform duration-300 hover:scale-105 cursor-pointer"
+          aria-hidden="true"
+          className="w-48 h-48 sm:w-52 sm:h-52 mx-auto rounded-full bg-white shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] flex items-center justify-center p-2.5 mb-5 pointer-events-none select-none"
         >
-          <CafeLogo size={200} className="w-full h-full" showBorder={true} />
+          <CafeLogo size={200} className="w-full h-full pointer-events-none" showBorder={true} />
         </div>
 
         {/* Heading & Subtitle */}

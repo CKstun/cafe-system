@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useCafe } from '../../context/CafeContext';
+import { CafeLogo } from '../common/CafeLogo';
 import {
   CheckCircle2,
   Clock,
@@ -81,31 +82,56 @@ export const Screen8LiveTracker: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 min-h-[560px] pb-16 p-5 sm:p-6 bg-[#FDFBF7] text-[#2B231F] space-y-4">
-      {/* Top Bar: Back to Menu & Live Polling Status */}
-      <div className="flex items-center justify-between text-xs text-[#8C7A6B] pb-1 border-b border-[#EFE8E1]">
-        <button
-          type="button"
-          onClick={() => {
-            setCustomerScreen(3);
-            navigate('/menu');
-          }}
-          className="inline-flex items-center gap-1 font-semibold text-[#5C3D2E] hover:text-[#4A2F22] transition cursor-pointer"
-        >
-          <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
-          <span>Back to Menu</span>
-        </button>
+    <div className="flex-1 min-h-[560px] flex flex-col justify-between bg-[#FDFBF7] text-[#2B231F] relative">
+      {/* Sticky Header matching Cart.tsx */}
+      <div className="sticky top-0 z-50 bg-[#FDFBF7] border-b border-[#EADBCE]/80 shadow-xs px-4 sm:px-6 py-3 transition-all">
+        <div className="flex items-center justify-between">
+          {/* Left Side: Back Navigation Arrow (<) to return to menu seamlessly */}
+          <div className="flex items-center">
+            <button
+              type="button"
+              onClick={() => {
+                setCustomerScreen(3);
+                navigate('/menu');
+              }}
+              className="p-1.5 -ml-1 text-[#5C3D2E] hover:bg-[#F4EFEB] rounded-full transition cursor-pointer"
+              aria-label="Back to Menu"
+              title="Return to Menu Catalog"
+            >
+              <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
+            </button>
+          </div>
 
-        <div className="flex items-center gap-1.5 text-[11px]">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-          </span>
-          <span className="font-medium text-[#5C4033]">Livewire Sync ({pollTick})</span>
+          {/* Middle / Main Section: Café Pepita Logo */}
+          <div
+            onClick={() => {
+              setCustomerScreen(3);
+              navigate('/menu');
+            }}
+            title="Café Pepita — Return to Menu"
+            className="cursor-pointer group flex items-center justify-center"
+          >
+            <div className="w-11 h-11 rounded-full bg-white shadow-xs border border-[#EADBCE] flex items-center justify-center p-0.5 group-hover:scale-105 active:scale-95 transition">
+              <CafeLogo size={42} className="w-9 h-9" showBorder={false} />
+            </div>
+          </div>
+
+          {/* Right Side: Live Sync & Status Indicator */}
+          <div className="text-right select-none">
+            <div className="flex items-center gap-1.5 justify-end">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span className="font-bold text-xs text-[#5C4033] font-mono">#{currentOrder.tracking_token}</span>
+            </div>
+            <p className="text-[10px] text-[#8C7A6B] font-medium">Live Order Tracking</p>
+          </div>
         </div>
       </div>
 
-      {/* Multi-Order Tabs Selector (Allows tracking multiple concurrent orders) */}
+      <div className="p-5 sm:p-6 space-y-4 pb-16 flex-1">
+        {/* Multi-Order Tabs Selector (Allows tracking multiple concurrent orders) */}
       {orders.length > 1 && (
         <div className="space-y-1.5">
           <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C7A6B] block">
@@ -320,19 +346,31 @@ export const Screen8LiveTracker: React.FC = () => {
         {currentOrder.items.map((it, idx) => (
           <div
             key={idx}
-            className="flex justify-between items-start text-xs py-1.5 border-b border-[#F4EFEB] last:border-none"
+            className="flex justify-between items-center text-xs py-2 border-b border-[#F4EFEB] last:border-none gap-3"
           >
-            <div>
-              <p className="font-bold text-[#2B231F]">
-                {it.quantity}x {it.item_name}
-              </p>
-              <p className="text-[10px] text-[#8C7A6B]">
-                {it.customizations.size}
-                {it.customizations.milk_type === 'oat' ? ' • Oat Milk' : ''}
-                {it.customizations.add_ons.map((a) => ` • +${a.name}`)}
-              </p>
+            <div className="flex items-center gap-2.5 min-w-0">
+              {it.image_path && (
+                <img
+                  src={it.image_path}
+                  alt={it.item_name}
+                  className="w-10 h-10 rounded-lg object-cover border border-[#EADBCE]/70 shrink-0"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              )}
+              <div className="min-w-0">
+                <p className="font-bold text-[#2B231F] truncate">
+                  {it.quantity}x {it.item_name}
+                </p>
+                <p className="text-[10px] text-[#8C7A6B]">
+                  {it.customizations.size}
+                  {it.customizations.milk_type === 'oat' ? ' • Oat Milk' : ''}
+                  {it.customizations.add_ons.map((a) => ` • +${a.name}`)}
+                </p>
+              </div>
             </div>
-            <span className="font-bold text-xs text-[#5C4033]">
+            <span className="font-bold font-mono text-xs text-[#5C4033] shrink-0">
               ₱{(it.price * it.quantity).toFixed(2)}
             </span>
           </div>
@@ -343,6 +381,31 @@ export const Screen8LiveTracker: React.FC = () => {
             ₱{currentOrder.total_amount.toFixed(2)}
           </span>
         </div>
+
+        {/* GCash Proof of Payment Attachment Badge */}
+        {currentOrder.gcash_receipt_path && (
+          <div className="mt-3 p-3 bg-[#F4EFEB] rounded-2xl border border-[#E6DDD4] flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <img
+                src={currentOrder.gcash_receipt_path}
+                alt="GCash Payment Receipt"
+                className="w-11 h-11 rounded-xl object-cover border border-[#E6DDD4] shrink-0 shadow-2xs"
+              />
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-[#2B231F] truncate">Proof of Payment Attached</p>
+                <p className="text-[10px] text-emerald-700 font-semibold">GCash E-Wallet Verified</p>
+              </div>
+            </div>
+            <a
+              href={currentOrder.gcash_receipt_path}
+              target="_blank"
+              rel="noreferrer"
+              className="text-[11px] font-bold text-[#5C3D2E] hover:underline shrink-0"
+            >
+              View Receipt
+            </a>
+          </div>
+        )}
       </div>
 
       {/* Bottom Actions Container: Order Another Item (Placed above Cancel Order) & Cancellation */}
@@ -424,6 +487,7 @@ export const Screen8LiveTracker: React.FC = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

@@ -2,49 +2,49 @@ import React, { useState } from 'react';
 import { useCafe } from '../../context/CafeContext';
 import {
   ChefHat,
-  Clock,
-  CheckCircle,
-  AlertTriangle,
-  Banknote,
-  Sparkles,
   Search,
   ExternalLink,
   Coffee,
+  CheckCircle,
   XCircle,
-  Filter,
-  Radio,
-  Terminal,
+  AlertTriangle,
+  Receipt,
+  Eye,
+  Banknote,
   Volume2,
   VolumeX,
-  ChevronDown,
-  ChevronUp,
-  Bell,
-  Check,
   LogOut,
   User,
+  Clock,
+  MapPin,
+  Phone,
 } from 'lucide-react';
-import { OrderStatus } from '../../types/cafe';
+import { Order, OrderStatus } from '../../types/cafe';
+import { OrderVerificationModal } from './OrderVerificationModal';
 
 export const StaffDashboard: React.FC = () => {
   const {
     orders,
-    approveCashPayment,
+    verifyAndAcceptOrder,
+    rejectOrder,
     updateOrderStatus,
     handleCancellation,
     viewOrderTracker,
     setViewMode,
-    echoConnected,
-    echoEvents,
     soundEnabled,
     setSoundEnabled,
-    triggerTestEchoBroadcast,
     staffSession,
     logoutStaff,
   } = useCafe();
 
-  const [activeTab, setActiveTab] = useState<'active' | 'pending' | 'preparing' | 'ready' | 'completed' | 'all'>('active');
+  const [activeTab, setActiveTab] = useState<'active' | 'pending' | 'preparing' | 'ready' | 'completed' | 'all'>('pending');
   const [searchQuery, setSearchQuery] = useState('');
-  const [showEchoConsole, setShowEchoConsole] = useState<boolean>(false);
+  const [inspectingOrder, setInspectingOrder] = useState<Order | null>(null);
+
+  // Pending verification count
+  const pendingVerificationCount = orders.filter(
+    (o) => o.order_status === 'pending'
+  ).length;
 
   const filteredOrders = orders.filter((order) => {
     // Status filter
@@ -58,54 +58,74 @@ export const StaffDashboard: React.FC = () => {
     // Search query
     const matchesSearch =
       order.tracking_token.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.customer_name.toLowerCase().includes(searchQuery.toLowerCase());
+      order.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (order.delivery_details?.contact_number || '').includes(searchQuery);
 
     return matchesTab && matchesSearch;
   });
 
-  const getStatusBadge = (status: OrderStatus) => {
-    switch (status) {
-      case 'pending':
-        return <span className="bg-amber-100 text-amber-900 px-2.5 py-0.5 rounded-full text-[10px] font-bold">Pending</span>;
-      case 'preparing':
-        return <span className="bg-[#5C4033] text-[#FDFBF7] px-2.5 py-0.5 rounded-full text-[10px] font-bold animate-pulse">Brewing</span>;
-      case 'ready':
-        return <span className="bg-emerald-100 text-emerald-900 px-2.5 py-0.5 rounded-full text-[10px] font-bold">Ready</span>;
-      case 'completed':
-        return <span className="bg-[#EFE8E1] text-[#736357] px-2.5 py-0.5 rounded-full text-[10px] font-bold">Done</span>;
-      case 'cancelled':
-        return <span className="bg-rose-100 text-rose-800 px-2.5 py-0.5 rounded-full text-[10px] font-bold">Cancelled</span>;
-      default:
-        return null;
+  const getStatusBadge = (order: Order) => {
+    if (order.order_status === 'pending') {
+      return (
+        <span className="bg-amber-100 text-amber-900 border border-amber-300 px-2.5 py-0.5 rounded-full text-[10px] font-bold animate-pulse">
+          Pending Verification
+        </span>
+      );
     }
+    if (order.order_status === 'preparing') {
+      return (
+        <span className="bg-[#5C4033] text-[#FDFBF7] px-2.5 py-0.5 rounded-full text-[10px] font-bold">
+          Brewing in Kitchen
+        </span>
+      );
+    }
+    if (order.order_status === 'ready') {
+      return (
+        <span className="bg-emerald-100 text-emerald-900 border border-emerald-300 px-2.5 py-0.5 rounded-full text-[10px] font-bold">
+          Ready for Claim
+        </span>
+      );
+    }
+    if (order.order_status === 'completed') {
+      return (
+        <span className="bg-[#EFE8E1] text-[#736357] px-2.5 py-0.5 rounded-full text-[10px] font-bold">
+          Completed
+        </span>
+      );
+    }
+    if (order.order_status === 'cancelled') {
+      return (
+        <span className="bg-rose-100 text-rose-800 border border-rose-300 px-2.5 py-0.5 rounded-full text-[10px] font-bold">
+          Cancelled
+        </span>
+      );
+    }
+    return null;
   };
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] text-[#2B231F] pb-16">
-      {/* Top Banner */}
-      <div className="bg-[#F4EFEB] border-b border-[#E6DDD4] px-4 sm:px-8 py-4">
+      {/* Clean Staff Top Header - No Livewire or WebSocket banners */}
+      <header className="bg-[#F4EFEB] border-b border-[#E6DDD4] px-4 sm:px-8 py-4 sticky top-0 z-30 shadow-2xs">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-[#5C4033] text-[#FDFBF7] flex items-center justify-center shadow-sm shrink-0">
+            <div className="w-12 h-12 rounded-2xl bg-[#5C4033] text-[#FDFBF7] flex items-center justify-center shadow-xs shrink-0">
               <ChefHat className="w-6 h-6 text-[#FDFBF7]" />
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="font-display text-xl font-bold text-[#2B231F]">Barista Kitchen Display (KDS)</h1>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold border border-emerald-300">
-                  Live Queue
-                </span>
+                <h1 className="font-display text-xl font-bold text-[#2B231F]">Barista Staff Portal</h1>
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-mono font-bold border border-amber-300">
-                  role:staff
+                  Kitchen Display System
                 </span>
               </div>
               <p className="text-xs text-[#8C7A6B]">
-                Incoming mobile orders, counter cash verification, and preparation workflow.
+                Order fulfillment, mandatory payment verification, and kitchen preparation queue.
               </p>
             </div>
           </div>
 
-          {/* Right controls: Staff User info, Search, and Logout */}
+          {/* Right controls: Quick Search, Sound Toggle, Staff User Info, and Logout */}
           <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
             {/* Quick Search */}
             <div className="relative flex-1 sm:w-56">
@@ -119,6 +139,22 @@ export const StaffDashboard: React.FC = () => {
               <Search className="w-4 h-4 text-[#8C7A6B] absolute left-3 top-3.5" />
             </div>
 
+            {/* Sound Chime Toggle */}
+            <button
+              type="button"
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              className={`min-h-[44px] px-3 py-2 rounded-xl border transition cursor-pointer flex items-center gap-1 text-xs font-semibold ${
+                soundEnabled
+                  ? 'bg-amber-50 border-amber-300 text-amber-900'
+                  : 'bg-white border-[#E6DDD4] text-stone-500 hover:bg-stone-100'
+              }`}
+              title={soundEnabled ? 'Chime sound active' : 'Chime sound muted'}
+              aria-label="Toggle chime sound"
+            >
+              {soundEnabled ? <Volume2 className="w-4 h-4 text-amber-700" /> : <VolumeX className="w-4 h-4 text-stone-500" />}
+              <span className="hidden sm:inline">{soundEnabled ? 'Sound' : 'Muted'}</span>
+            </button>
+
             {/* Staff User & Logout */}
             <div className="flex items-center gap-2">
               <div className="hidden lg:flex items-center gap-1.5 px-3 py-2 bg-white border border-[#E6DDD4] rounded-xl text-xs text-[#5C4033]">
@@ -130,8 +166,8 @@ export const StaffDashboard: React.FC = () => {
                 type="button"
                 id="staff-logout-btn"
                 onClick={() => logoutStaff()}
-                className="min-h-[44px] px-3.5 py-2 bg-white hover:bg-rose-50 text-stone-700 hover:text-rose-700 border border-[#E6DDD4] hover:border-rose-300 font-bold rounded-xl text-xs flex items-center gap-2 transition-colors cursor-pointer shadow-xs"
-                title="Revoke Sanctum token & return to Staff Login"
+                className="min-h-[44px] px-3.5 py-2 bg-white hover:bg-rose-50 text-stone-700 hover:text-rose-700 border border-[#E6DDD4] hover:border-rose-300 font-bold rounded-xl text-xs flex items-center gap-2 transition-colors cursor-pointer shadow-2xs"
+                title="Log out of Staff Portal"
               >
                 <LogOut className="w-4 h-4 text-stone-500 hover:text-rose-600" />
                 <span>Logout</span>
@@ -139,111 +175,19 @@ export const StaffDashboard: React.FC = () => {
             </div>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-8 pt-6">
-        {/* Real-time Laravel Echo & Pusher Live Status Bar */}
-        <div className="mb-6 bg-[#241D19] border border-[#3E332D] rounded-2xl p-4 text-[#FDFBF7] shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-[#3E332D] flex items-center justify-center text-emerald-400">
-                <Radio className="w-5 h-5 animate-pulse" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs font-bold text-white">
-                    Laravel Echo & Pusher WebSocket
-                  </span>
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 text-[10px] font-mono">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-                    Connected
-                  </span>
-                </div>
-                <p className="text-[11px] text-[#A6978A] mt-0.5">
-                  Subscribed: <code className="text-[#D4A373] font-mono">private-staff.orders</code> • Listening for event: <code className="text-[#FAEDCD] font-mono">App\Events\OrderPlaced</code>
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={triggerTestEchoBroadcast}
-                className="px-3 py-1.5 rounded-xl bg-[#5C4033] hover:bg-[#6E4F3F] text-[#FDFBF7] text-xs font-semibold flex items-center gap-1.5 transition shadow-xs"
-              >
-                <Bell className="w-3.5 h-3.5 text-amber-300 animate-bounce" />
-                <span>Trigger Test Broadcast</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setSoundEnabled(!soundEnabled)}
-                className={`p-1.5 rounded-xl border transition ${
-                  soundEnabled
-                    ? 'border-amber-500/40 text-amber-300 bg-[#3E332D]'
-                    : 'border-[#3E332D] text-[#A6978A] bg-[#1F1A17]'
-                }`}
-                title={soundEnabled ? 'Chime sound is active' : 'Chime sound is muted'}
-              >
-                {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowEchoConsole(!showEchoConsole)}
-                className="px-2.5 py-1.5 rounded-xl bg-[#1F1A17] border border-[#3E332D] hover:bg-[#2B231F] text-[#D4C5B9] text-xs font-mono flex items-center gap-1 transition"
-              >
-                <Terminal className="w-3.5 h-3.5 text-[#D4A373]" />
-                <span>Logs ({echoEvents.length})</span>
-                {showEchoConsole ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-              </button>
-            </div>
-          </div>
-
-          {/* Expandable Live WebSocket Frame Inspector */}
-          {showEchoConsole && (
-            <div className="mt-4 pt-4 border-t border-[#3E332D] space-y-3 animate-in fade-in duration-200">
-              <div className="flex items-center justify-between text-xs text-[#A6978A]">
-                <span className="font-mono text-[11px] uppercase tracking-wider text-[#D4A373]">
-                  Live Echo Event Stream (Client Listener: Livewire v3 #[On('echo-private:staff.orders,OrderPlaced')])
-                </span>
-                <span className="text-[10px]">Pusher v8.4 • TLS 1.3</span>
-              </div>
-
-              <div className="space-y-2 max-h-48 overflow-y-auto no-scrollbar font-mono text-[11px]">
-                {echoEvents.length === 0 ? (
-                  <p className="text-xs text-[#8C7A6B] py-2">No broadcast events captured yet.</p>
-                ) : (
-                  echoEvents.map((evt) => (
-                    <div
-                      key={evt.id}
-                      className="bg-[#191412] border border-[#332A25] rounded-xl p-2.5 text-xs text-[#E5DCD1] space-y-1"
-                    >
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-emerald-400 font-bold flex items-center gap-1">
-                          <Radio className="w-3 h-3 text-emerald-400" />
-                          {evt.event}
-                        </span>
-                        <span className="text-[#8C7A6B]">
-                          {new Date(evt.timestamp).toLocaleTimeString()}
-                        </span>
-                      </div>
-                      <div className="text-[11px] text-[#A6978A]">
-                        Channel: <span className="text-[#D4A373]">{evt.channel}</span> | Order: <span className="text-white font-bold">#{evt.payload.tracking_token}</span> ({evt.payload.customer_name}) | Total: <span className="text-emerald-300 font-bold">₱{evt.payload.total_amount.toFixed(2)}</span>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Filter Navigation Tabs */}
+      {/* Main Content Area */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-8 pt-6">
+        {/* Clean Filter Navigation Tabs */}
         <div className="flex items-center gap-2 overflow-x-auto pb-3 border-b border-[#EFE8E1]">
           {[
+            {
+              id: 'pending',
+              label: 'Pending Verification',
+              count: pendingVerificationCount,
+            },
             { id: 'active', label: 'Active Queue' },
-            { id: 'pending', label: 'Pending Payment' },
             { id: 'preparing', label: 'In Kitchen (Brewing)' },
             { id: 'ready', label: 'Ready for Claim' },
             { id: 'completed', label: 'Completed' },
@@ -252,13 +196,24 @@ export const StaffDashboard: React.FC = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition ${
+              className={`min-h-[38px] px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition flex items-center gap-1.5 cursor-pointer ${
                 activeTab === tab.id
-                  ? 'bg-[#5C4033] text-[#FDFBF7] shadow-sm'
+                  ? 'bg-[#5C4033] text-[#FDFBF7] shadow-xs'
                   : 'bg-[#F4EFEB] text-[#736357] hover:bg-[#E6DDD4]'
               }`}
             >
-              {tab.label}
+              <span>{tab.label}</span>
+              {typeof tab.count === 'number' && tab.count > 0 && (
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    activeTab === tab.id
+                      ? 'bg-amber-400 text-stone-900'
+                      : 'bg-amber-200 text-amber-900'
+                  }`}
+                >
+                  {tab.count}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -266,37 +221,33 @@ export const StaffDashboard: React.FC = () => {
         {/* Orders Card Grid */}
         <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredOrders.map((order) => {
-            const isCashUnpaid = order.payment_method === 'cash' && order.payment_status === 'unpaid';
+            const isPendingVerification = order.order_status === 'pending';
+            const isGCash = order.payment_method === 'online';
+            const isCash = order.payment_method === 'cash';
             const hasCancelRequest = order.cancellation_requested;
 
             return (
               <div
                 key={order.id}
-                className={`bg-[#FDFBF7] border-2 rounded-3xl p-5 shadow-sm flex flex-col justify-between transition ${
+                className={`bg-[#FDFBF7] border-2 rounded-3xl p-5 shadow-xs flex flex-col justify-between transition ${
                   hasCancelRequest
                     ? 'border-amber-400 bg-amber-50/20'
-                    : isCashUnpaid
-                    ? 'border-amber-200'
+                    : isPendingVerification
+                    ? 'border-amber-300 shadow-sm ring-2 ring-amber-100'
                     : order.order_status === 'ready'
-                    ? 'border-emerald-300'
+                    ? 'border-emerald-300 bg-emerald-50/15'
                     : 'border-[#EFE8E1]'
                 }`}
               >
                 <div>
-                  {/* Top Bar: Token, Status, Elapsed */}
+                  {/* Top Bar: Token, Status, Timestamp */}
                   <div className="flex items-center justify-between border-b border-[#F4EFEB] pb-3">
                     <div>
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="font-mono text-sm font-extrabold text-[#5C4033]">
                           #{order.tracking_token}
                         </span>
-                        {getStatusBadge(order.order_status)}
-                        {echoEvents.some((e) => e.payload.tracking_token === order.tracking_token) && (
-                          <span className="inline-flex items-center gap-1 text-[9px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                            <Radio className="w-2.5 h-2.5 text-emerald-600 animate-pulse" />
-                            Live Echo
-                          </span>
-                        )}
+                        {getStatusBadge(order)}
                       </div>
                       <span className="text-[10px] text-[#8C7A6B] block mt-0.5">
                         {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -306,7 +257,7 @@ export const StaffDashboard: React.FC = () => {
                     <div className="text-right">
                       <span className="text-xs font-bold uppercase text-[#5C4033] bg-[#EFE8E1] px-2.5 py-1 rounded-full border border-[#E6DDD4]">
                         {order.order_type === 'dine-in'
-                          ? 'Dine-in'
+                          ? `Dine-in (Table ${order.table_id || '?'})`
                           : order.order_type === 'delivery'
                           ? 'Delivery'
                           : 'Take-out'}
@@ -314,13 +265,13 @@ export const StaffDashboard: React.FC = () => {
                       <p className="text-xs font-bold text-[#2B231F] mt-1">{order.customer_name}</p>
                       {order.delivery_details && (
                         <p className="text-[10px] text-[#7A6253] mt-0.5 max-w-[200px] truncate text-right">
-                          📍 {order.delivery_details.address}, {order.delivery_details.city_region}
+                          📍 {order.delivery_details.address}
                         </p>
                       )}
                     </div>
                   </div>
 
-                  {/* Ready - Name Calling Notification for Barista / Cashier */}
+                  {/* Ready - Name Calling Notification for Barista */}
                   {order.order_status === 'ready' && (
                     <div className="mt-3 p-3 bg-emerald-50 border border-emerald-300 rounded-2xl flex items-center justify-between animate-pulse">
                       <div className="flex items-center gap-2">
@@ -335,12 +286,12 @@ export const StaffDashboard: React.FC = () => {
                         </div>
                       </div>
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-900 font-bold">
-                        Call Counter
+                        Ready
                       </span>
                     </div>
                   )}
 
-                  {/* Cancellation Request Warning Banner */}
+                  {/* Customer Cancellation Request Banner */}
                   {hasCancelRequest && (
                     <div className="mt-3 p-3 bg-amber-100 border border-amber-300 rounded-2xl">
                       <div className="flex items-start gap-2">
@@ -352,14 +303,16 @@ export const StaffDashboard: React.FC = () => {
                           </p>
                           <div className="mt-2 flex gap-2">
                             <button
+                              type="button"
                               onClick={() => handleCancellation(order.id, true)}
-                              className="px-3 py-1 bg-[#DC2626] text-white text-[11px] font-bold rounded-full shadow-xs"
+                              className="px-3 py-1 bg-[#DC2626] text-white text-[11px] font-bold rounded-full shadow-xs cursor-pointer"
                             >
                               Approve Cancel
                             </button>
                             <button
+                              type="button"
                               onClick={() => handleCancellation(order.id, false)}
-                              className="px-3 py-1 bg-white border border-amber-300 text-amber-900 text-[11px] font-bold rounded-full"
+                              className="px-3 py-1 bg-white border border-amber-300 text-amber-900 text-[11px] font-bold rounded-full cursor-pointer"
                             >
                               Reject & Continue
                             </button>
@@ -369,39 +322,91 @@ export const StaffDashboard: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Payment Alert Banner if Cash Unpaid */}
-                  {isCashUnpaid && (
-                    <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-2xl flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 block">
-                          Unpaid Counter Cash
+                  {/* MANDATORY PAYMENT VERIFICATION WORKFLOW CARD SECTION */}
+                  {isPendingVerification && (
+                    <div className="mt-3 p-3.5 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
+                          {isGCash ? (
+                            <>
+                              <Receipt className="w-3.5 h-3.5 text-amber-700" />
+                              <span>GCash Payment Verification</span>
+                            </>
+                          ) : (
+                            <>
+                              <Banknote className="w-3.5 h-3.5 text-amber-700" />
+                              <span>Cash Collection Verification</span>
+                            </>
+                          )}
                         </span>
-                        <span className="text-xs font-extrabold text-[#5C4033]">
-                          Collect ₱{order.total_amount.toFixed(2)}
+                        <span className="font-extrabold text-xs text-[#5C4033]">
+                          ₱{order.total_amount.toFixed(2)}
                         </span>
                       </div>
-                      <button
-                        onClick={() => approveCashPayment(order.id)}
-                        className="px-3.5 py-1.5 bg-[#5C4033] text-[#FDFBF7] text-xs font-bold rounded-full shadow hover:bg-[#4A3328] transition"
-                      >
-                        Confirm Payment
-                      </button>
+
+                      {isGCash && (
+                        <div>
+                          <p className="text-[11px] text-stone-700 leading-snug">
+                            Customer uploaded a proof of payment screenshot. Inspect the receipt before approving.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => setInspectingOrder(order)}
+                            className="mt-2 w-full py-2 px-3 bg-white hover:bg-amber-100/70 text-amber-900 border border-amber-300 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs"
+                          >
+                            <Eye className="w-3.5 h-3.5 text-amber-700" />
+                            <span>View Proof of Payment</span>
+                            {order.gcash_receipt_path && (
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 ml-1"></span>
+                            )}
+                          </button>
+                        </div>
+                      )}
+
+                      {isCash && (
+                        <p className="text-[11px] text-stone-700 leading-snug">
+                          Confirm physical cash receipt at the counter or table before approving order for kitchen preparation.
+                        </p>
+                      )}
+
+                      {/* Action Buttons: Verify & Accept Order / Reject Order */}
+                      <div className="pt-2 border-t border-amber-200 flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => rejectOrder(order.id, isGCash ? 'Invalid GCash receipt' : 'Cash not received')}
+                          className="py-2 px-2.5 bg-white hover:bg-rose-50 text-rose-700 border border-rose-300 hover:border-rose-400 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1 shrink-0"
+                          title="Reject this order"
+                        >
+                          <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                          <span>Reject</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => verifyAndAcceptOrder(order.id)}
+                          className="flex-1 py-2 px-3 bg-[#5C4033] hover:bg-[#4A3328] text-[#FDFBF7] rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 shadow-xs active:scale-98"
+                          title="Verify payment and send to kitchen"
+                        >
+                          <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>Verify & Accept Order</span>
+                        </button>
+                      </div>
                     </div>
                   )}
 
-                  {/* Online Paid Badge */}
+                  {/* Verified & Paid Badge */}
                   {order.payment_status === 'paid' && (
                     <div className="mt-3 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-[11px]">
                       <span className="font-semibold text-emerald-800 flex items-center gap-1">
-                        <CheckCircle className="w-3.5 h-3.5" />
-                        <span>Paid via {order.payment_method.toUpperCase()}</span>
+                        <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Verified & Paid via {order.payment_method.toUpperCase()}</span>
                       </span>
                       <span className="font-bold text-emerald-900">₱{order.total_amount.toFixed(2)}</span>
                     </div>
                   )}
 
                   {/* Item Breakdown */}
-                  <div className="mt-4 space-y-2.5">
+                  <div className="mt-4 space-y-2">
                     {order.items.map((item, idx) => (
                       <div key={idx} className="bg-[#F4EFEB] p-2.5 rounded-xl border border-[#E6DDD4] text-xs">
                         <div className="flex justify-between font-bold text-[#2B231F]">
@@ -438,34 +443,28 @@ export const StaffDashboard: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Bottom Stage Progress Actions */}
+                {/* Bottom Stage Actions for Verified Orders */}
                 <div className="mt-5 pt-3 border-t border-[#F4EFEB] flex items-center justify-between gap-2">
                   {/* Customer view preview button */}
                   <button
+                    type="button"
                     onClick={() => {
                       viewOrderTracker(order.tracking_token);
                       setViewMode('customer');
                     }}
-                    className="p-2 text-[#8C7A6B] hover:text-[#5C4033] hover:bg-[#EFE8E1] rounded-full transition"
+                    className="p-2 text-[#8C7A6B] hover:text-[#5C4033] hover:bg-[#EFE8E1] rounded-full transition cursor-pointer"
                     title="View Customer Mobile Tracker"
+                    aria-label="View customer tracker"
                   >
                     <ExternalLink className="w-4 h-4" />
                   </button>
 
                   <div className="flex items-center gap-1.5 flex-1 justify-end">
-                    {order.order_status === 'pending' && (
-                      <button
-                        onClick={() => updateOrderStatus(order.id, 'preparing')}
-                        className="w-full py-2.5 px-3 bg-[#5C4033] hover:bg-[#4A3328] text-[#FDFBF7] text-xs font-bold rounded-full shadow-xs transition text-center"
-                      >
-                        Start Preparing
-                      </button>
-                    )}
-
                     {order.order_status === 'preparing' && (
                       <button
+                        type="button"
                         onClick={() => updateOrderStatus(order.id, 'ready')}
-                        className="w-full py-2.5 px-3 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-full shadow-xs transition text-center"
+                        className="w-full py-2.5 px-3 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-full shadow-xs transition text-center cursor-pointer"
                       >
                         Mark Ready for Claim
                       </button>
@@ -473,8 +472,9 @@ export const StaffDashboard: React.FC = () => {
 
                     {order.order_status === 'ready' && (
                       <button
+                        type="button"
                         onClick={() => updateOrderStatus(order.id, 'completed')}
-                        className="w-full py-2.5 px-3 bg-[#2B231F] hover:bg-black text-[#FDFBF7] text-xs font-bold rounded-full shadow-xs transition text-center"
+                        className="w-full py-2.5 px-3 bg-[#2B231F] hover:bg-black text-[#FDFBF7] text-xs font-bold rounded-full shadow-xs transition text-center cursor-pointer"
                       >
                         Complete Order
                       </button>
@@ -505,11 +505,26 @@ export const StaffDashboard: React.FC = () => {
             <Coffee className="w-12 h-12 text-[#D9CDC1] mx-auto mb-3" />
             <h3 className="font-display text-base font-bold text-[#2B231F]">No Orders in This View</h3>
             <p className="text-xs text-[#8C7A6B] mt-1">
-              Switch filter tabs or place a test order from the Customer Mobile App.
+              Switch filter tabs or submit a test order from the Customer Mobile view.
             </p>
           </div>
         )}
-      </div>
+      </main>
+
+      {/* High-Resolution GCash Proof of Payment Review Modal */}
+      <OrderVerificationModal
+        isOpen={Boolean(inspectingOrder)}
+        onClose={() => setInspectingOrder(null)}
+        order={inspectingOrder}
+        onConfirmPayment={(orderId) => {
+          verifyAndAcceptOrder(orderId);
+          setInspectingOrder(null);
+        }}
+        onRejectOrder={(orderId, reason) => {
+          rejectOrder(orderId, reason);
+          setInspectingOrder(null);
+        }}
+      />
     </div>
   );
 };

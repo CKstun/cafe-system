@@ -157,6 +157,8 @@ interface CafeContextType {
 
   // Staff POS / Kitchen Actions
   approveCashPayment: (orderId: number) => void;
+  verifyAndAcceptOrder: (orderId: number) => void;
+  rejectOrder: (orderId: number, reason?: string) => void;
   updateOrderStatus: (orderId: number, status: OrderStatus) => void;
   handleCancellation: (orderId: number, approve: boolean) => void;
 
@@ -630,11 +632,12 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
         table_id: null,
         customer_name: 'David Tan',
         order_type: 'take-out',
-        total_amount: 275,
+        total_amount: 265,
         payment_method: 'online',
-        payment_status: 'paid',
-        order_status: 'preparing',
-        created_at: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
+        payment_status: 'unpaid',
+        order_status: 'pending',
+        gcash_receipt_path: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=800&auto=format&fit=crop&q=80',
+        created_at: new Date(Date.now() - 1000 * 60 * 8).toISOString(),
         updated_at: new Date().toISOString(),
         items: [
           {
@@ -655,6 +658,41 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
             item_name: 'Belgian Signature Chocolate',
             quantity: 1,
             price: 120,
+            customizations: {
+              size: '16oz',
+              milk_type: 'regular',
+              add_ons: [],
+            },
+          },
+        ],
+      },
+      {
+        id: 1003,
+        tracking_token: 'CP-902341',
+        table_id: null,
+        customer_name: 'Marco Valerio',
+        order_type: 'delivery',
+        delivery_details: {
+          address: 'Block 3 Lot 8 Acacia Lane',
+          city_region: 'Cabanatuan City',
+          postal_code: '3100',
+          contact_number: '09171234567',
+          driver_notes: 'Leave at front gate',
+        },
+        total_amount: 320,
+        payment_method: 'online',
+        payment_status: 'paid',
+        order_status: 'preparing',
+        gcash_receipt_path: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=800&auto=format&fit=crop&q=80',
+        created_at: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
+        updated_at: new Date().toISOString(),
+        items: [
+          {
+            id: 'item-5',
+            menu_item_id: 101,
+            item_name: 'Pepita Signature Spanish Latte',
+            quantity: 2,
+            price: 135,
             customizations: {
               size: '16oz',
               milk_type: 'regular',
@@ -911,8 +949,11 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
       delivery_details: orderType === 'delivery' ? deliveryDetails || undefined : undefined,
       total_amount: subtotal,
       payment_method: paymentMethod,
-      payment_status: isOnlinePaid ? 'paid' : 'unpaid',
-      order_status: isOnlinePaid ? 'preparing' : 'pending',
+      // Mandatory Payment Verification Workflow:
+      // Orders submitted via Cash or GCash must NOT be directly marked as "Accepted" or sent to preparation
+      // until Staff explicitly verifies payment. Initial state: 'unpaid' and 'pending'.
+      payment_status: 'unpaid',
+      order_status: 'pending',
       gcash_receipt_path: isOnlinePaid ? (gcashReceiptPath || undefined) : undefined,
       items: [...cart],
       created_at: new Date().toISOString(),
@@ -936,7 +977,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
         total_amount: subtotal,
         items_count: cart.reduce((acc, curr) => acc + curr.quantity, 0),
         payment_method: paymentMethod,
-        payment_status: isOnlinePaid ? 'paid' : 'unpaid',
+        payment_status: 'unpaid',
         items: cart.map((i) => ({
           name: i.item_name,
           quantity: i.quantity,
@@ -950,11 +991,6 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (soundEnabled) {
       playOrderChime();
-    }
-
-    // If customer paid immediately online, deduct inventory right away!
-    if (isOnlinePaid) {
-      deductInventoryForOrder(cart, trackingToken, null);
     }
 
     // Set Table to occupied if dine-in
@@ -991,8 +1027,8 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCustomerScreen(8);
   };
 
-  // Staff POS / Kitchen Actions
-  const approveCashPayment = (orderId: number) => {
+  // Staff POS / Kitchen Actions - Mandatory Payment Verification Workflow
+  const verifyAndAcceptOrder = (orderId: number) => {
     setOrders((prev) =>
       prev.map((ord) => {
         if (ord.id === orderId) {
@@ -1002,13 +1038,38 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return {
             ...ord,
             payment_status: 'paid',
-            order_status: ord.order_status === 'pending' ? 'preparing' : ord.order_status,
+            order_status: 'preparing',
             updated_at: new Date().toISOString(),
           };
         }
         return ord;
       })
     );
+  };
+
+  const rejectOrder = (orderId: number, reason?: string) => {
+    setOrders((prev) =>
+      prev.map((ord) => {
+        if (ord.id === orderId) {
+          if (ord.table_id) {
+            setTables((tbls) =>
+              tbls.map((t) => (t.id === ord.table_id ? { ...t, status: 'available' } : t))
+            );
+          }
+          return {
+            ...ord,
+            order_status: 'cancelled',
+            cancellation_reason: reason || 'Order rejected by staff (Invalid payment or proof of payment)',
+            updated_at: new Date().toISOString(),
+          };
+        }
+        return ord;
+      })
+    );
+  };
+
+  const approveCashPayment = (orderId: number) => {
+    verifyAndAcceptOrder(orderId);
   };
 
   const updateOrderStatus = (orderId: number, status: OrderStatus) => {
@@ -1291,6 +1352,8 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
         requestOrderCancellation,
         viewOrderTracker,
         approveCashPayment,
+        verifyAndAcceptOrder,
+        rejectOrder,
         updateOrderStatus,
         handleCancellation,
         addStaffUser,

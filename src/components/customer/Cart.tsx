@@ -15,8 +15,14 @@ export const Cart: React.FC = () => {
     orderType,
   } = useCafe();
 
-  const totalItemCount = cart.reduce((acc, curr) => acc + curr.quantity, 0);
-  const totalAmount = cart.reduce((acc, curr) => acc + curr.price * curr.quantity, 0);
+  // Defensive guard against non-array cart state
+  const cartItems = Array.isArray(cart) ? cart : [];
+
+  const totalItemCount = cartItems.reduce((acc, curr) => acc + (curr?.quantity || 1), 0);
+  const totalAmount = cartItems.reduce(
+    (acc, curr) => acc + Number(curr?.price || 0) * (curr?.quantity || 1),
+    0
+  );
 
   // Navigate back to menu catalog without losing cart items
   const handleBackToMenu = () => {
@@ -47,11 +53,11 @@ export const Cart: React.FC = () => {
   return (
     <div className="flex-1 min-h-[560px] flex flex-col justify-between bg-[#FDFBF7] text-[#2B231F] relative">
       {/* 
-        2. REVISED STICKY CART HEADER LAYOUT:
-        - Locked at the top when scrolling (sticky top-0 z-50 bg-[#FDFBF7])
+        STICKY CART HEADER LAYOUT:
+        - Locked at top when scrolling (sticky top-0 z-50 bg-[#FDFBF7])
         - Left Side: Back Navigation Arrow (<)
-        - Middle / Main Section: Café Pepita Logo (tapping redirects back to /welcome)
-        - Right Side: "Your Cart" header text, with dynamic customer subtext [Customer Name] • [Order Type]
+        - Middle / Main Section: Café Pepita Logo (navigates to /welcome)
+        - Right Side: "Your Cart" header text with dynamic customer subtext [Customer Name] • [Order Type]
       */}
       <div className="sticky top-0 z-50 bg-[#FDFBF7] border-b border-[#EADBCE]/80 shadow-xs px-4 sm:px-6 py-3 transition-all">
         <div className="flex items-center justify-between">
@@ -67,7 +73,7 @@ export const Cart: React.FC = () => {
             </button>
           </div>
 
-          {/* Middle / Main Section: Café Pepita Logo (tapping redirects to /welcome) */}
+          {/* Middle / Main Section: Café Pepita Logo (navigates to /welcome) */}
           <div
             onClick={handleLogoClick}
             title="Café Pepita — Return to Welcome Screen"
@@ -78,7 +84,7 @@ export const Cart: React.FC = () => {
             </div>
           </div>
 
-          {/* Right Side: "Your Cart" header text + dynamic customer subtext */}
+          {/* Right Side: "Your Cart" header text + dynamic customer subtext [Customer Name] • [Order Type] */}
           <div className="text-right select-none">
             <div className="flex items-center justify-end gap-1.5">
               <h1 className="font-display text-base sm:text-lg font-bold text-[#2B231F] leading-none">
@@ -99,7 +105,7 @@ export const Cart: React.FC = () => {
 
       {/* Cart Items List */}
       <div className="flex-1 px-4 sm:px-6 py-4 space-y-3">
-        {cart.length === 0 ? (
+        {cartItems.length === 0 ? (
           <div className="py-20 text-center text-xs text-[#8C7A6B] space-y-4">
             <div className="w-16 h-16 mx-auto rounded-full bg-[#F4EFEB] flex items-center justify-center text-[#A68A78]">
               <ShoppingBag className="w-8 h-8" />
@@ -123,22 +129,32 @@ export const Cart: React.FC = () => {
           </div>
         ) : (
           <div className="space-y-3">
-            {cart.map((line) => {
+            {cartItems.map((line, idx) => {
+              const lineKey = line?.id || `cart-item-${idx}`;
+              const itemName = line?.name || line?.item_name || 'Menu Item';
+              const itemPrice = Number(line?.price || 0);
+              const itemQuantity = line?.quantity || 1;
+              const itemFlavor = line?.flavor || line?.customizations?.flavor || '';
+              const itemSize = line?.size || line?.customizations?.size || '';
+              const itemMilkType = line?.customizations?.milk_type;
+              const itemAddOns = line?.customizations?.add_ons || [];
+              const itemComments = line?.customizations?.comments;
+
               const itemImage =
-                line.image_path ||
-                menuItems.find((m) => m.id === line.menu_item_id)?.image_path;
+                line?.image_path ||
+                menuItems.find((m) => m.id === line?.menu_item_id)?.image_path;
 
               return (
                 <div
-                  key={line.id}
+                  key={lineKey}
                   className="p-3.5 sm:p-4 bg-[#F4EFEB] rounded-2xl border border-[#E6DDD4] flex items-start sm:items-center justify-between gap-3.5 shadow-2xs transition hover:border-[#D8C7BA]"
                 >
-                  {/* Product Thumbnail (w-16 h-16 rounded-xl object-cover) */}
+                  {/* Product Thumbnail */}
                   <div className="w-16 h-16 rounded-xl bg-[#EFE7DC] flex items-center justify-center shrink-0 overflow-hidden relative border border-[#EADBCE]/60">
                     {itemImage ? (
                       <img
                         src={itemImage}
-                        alt={line.item_name}
+                        alt={itemName}
                         className="w-16 h-16 rounded-xl object-cover"
                         onError={(e) => {
                           e.currentTarget.style.display = 'none';
@@ -160,27 +176,27 @@ export const Cart: React.FC = () => {
                   {/* Item Details */}
                   <div className="flex-1 min-w-0">
                     <h4 className="font-bold text-sm text-[#2B231F] leading-tight truncate">
-                      {line.item_name}
+                      {itemName}
                     </h4>
 
                     {/* Customizations tags */}
                     <div className="flex flex-wrap gap-1 mt-1.5 text-[10px] text-[#7A6253]">
-                      {line.customizations.size && (
+                      {itemSize && (
                         <span className="bg-[#EADBCE] text-[#5C3D2E] px-2 py-0.5 rounded-lg font-semibold">
-                          {line.customizations.size}
+                          {itemSize}
                         </span>
                       )}
-                      {line.customizations.flavor && (
+                      {itemFlavor && (
                         <span className="bg-[#EADBCE] text-[#5C3D2E] px-2 py-0.5 rounded-lg font-semibold">
-                          {line.customizations.flavor}
+                          {itemFlavor}
                         </span>
                       )}
-                      {line.customizations.milk_type === 'oat' && (
+                      {itemMilkType === 'oat' && (
                         <span className="bg-amber-100 text-amber-900 px-2 py-0.5 rounded-lg font-semibold">
                           Oat Milk
                         </span>
                       )}
-                      {line.customizations.add_ons?.map((a) => (
+                      {itemAddOns.map((a) => (
                         <span key={a.id} className="bg-white/80 text-[#5C3D2E] px-2 py-0.5 rounded-lg border border-[#EADBCE]">
                           +{a.name}
                         </span>
@@ -188,18 +204,18 @@ export const Cart: React.FC = () => {
                     </div>
 
                     {/* Comments */}
-                    {line.customizations.comments && (
+                    {itemComments && (
                       <p className="text-[11px] text-[#736357] italic mt-1.5 bg-white/60 px-2 py-0.5 rounded-lg inline-block border border-[#EADBCE]/50">
-                        "{line.customizations.comments}"
+                        "{itemComments}"
                       </p>
                     )}
 
                     {/* Unit & Line Price */}
                     <p className="font-bold text-xs font-mono text-[#5C3D2E] mt-2">
-                      ₱{(line.price * line.quantity).toFixed(2)}{' '}
-                      {line.quantity > 1 && (
+                      ₱{(itemPrice * itemQuantity).toFixed(2)}{' '}
+                      {itemQuantity > 1 && (
                         <span className="text-[10px] text-[#8C7A6B] font-normal font-sans">
-                          (₱{line.price.toFixed(2)} each)
+                          (₱{itemPrice.toFixed(2)} each)
                         </span>
                       )}
                     </p>
@@ -210,18 +226,18 @@ export const Cart: React.FC = () => {
                     <div className="flex items-center bg-white rounded-xl p-1 border border-[#E6DDD4] shadow-2xs">
                       <button
                         type="button"
-                        onClick={() => updateCartQuantity(line.id, -1)}
+                        onClick={() => line?.id && updateCartQuantity(line.id, -1)}
                         className="w-7 h-7 rounded-lg bg-[#F4EFEB] text-[#5C3D2E] font-bold text-xs flex items-center justify-center hover:bg-[#EADBCE] active:scale-95 transition cursor-pointer"
                         aria-label="Decrease quantity"
                       >
                         <Minus className="w-3.5 h-3.5" />
                       </button>
                       <span className="w-8 text-center text-xs font-mono font-bold text-[#2B231F]">
-                        {line.quantity}
+                        {itemQuantity}
                       </span>
                       <button
                         type="button"
-                        onClick={() => updateCartQuantity(line.id, 1)}
+                        onClick={() => line?.id && updateCartQuantity(line.id, 1)}
                         className="w-7 h-7 rounded-lg bg-[#5C3D2E] text-white font-bold text-xs flex items-center justify-center hover:bg-[#4A2F22] active:scale-95 transition cursor-pointer"
                         aria-label="Increase quantity"
                       >
@@ -231,7 +247,7 @@ export const Cart: React.FC = () => {
 
                     <button
                       type="button"
-                      onClick={() => removeFromCart(line.id)}
+                      onClick={() => line?.id && removeFromCart(line.id)}
                       className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
                       title="Remove item"
                       aria-label="Remove item"
@@ -247,13 +263,14 @@ export const Cart: React.FC = () => {
       </div>
 
       {/* 
-        3. ORDER SUMMARY (REMOVE TAXES) & 5. UNIFIED BUTTON STYLING:
-        - Taxes completely removed (no VAT, service charge, extra fees)
-        - Itemized "Order Summary" list directly above the total (e.g., "Cafe Americano × 1 — ₱109.00")
-        - Clear, bold Total row (e.g., Total: ₱109.00)
-        - Solid rectangular CTA button with soft rounded corners (rounded-2xl), deep coffee brown (bg-[#5C3D2E]), py-3.5, white text
+        ORDER SUMMARY & UNIFIED CTA BUTTON:
+        - Taxes completely removed
+        - Itemized list: Left column displays cleaned description with quantity after price (`• ₱Price xQuantity`)
+        - Right column displays unit price
+        - Bold Total row
+        - Solid rectangular CTA button with rounded-2xl
       */}
-      {cart.length > 0 && (
+      {cartItems.length > 0 && (
         <div className="sticky bottom-0 z-40 bg-[#FDFBF7] border-t border-[#EADBCE] p-4 sm:p-6 space-y-4 shadow-[0_-4px_16px_rgba(0,0,0,0.04)]">
           {/* Itemized Order Summary Box */}
           <div className="bg-[#F4EFEB] rounded-2xl p-4 border border-[#E6DDD4] space-y-2.5">
@@ -268,18 +285,25 @@ export const Cart: React.FC = () => {
 
             {/* Itemized List Lines */}
             <div className="space-y-1.5 text-xs text-[#2B231F]">
-              {cart.map((item) => {
-                const flavorPart = item.customizations.flavor ? ` ${item.customizations.flavor}` : '';
-                const sizePart = item.customizations.size ? ` ${item.customizations.size}` : '';
-                const itemLabel = `${item.item_name}${flavorPart}${sizePart} • ₱${item.price.toFixed(2)} x${item.quantity}`;
+              {cartItems.map((item, idx) => {
+                const itemKey = item?.id || `summary-item-${idx}`;
+                const name = item?.name || item?.item_name || '';
+                const flavor = item?.flavor || item?.customizations?.flavor || '';
+                const size = item?.size || item?.customizations?.size || '';
+                const unitPrice = Number(item?.price || 0);
+                const quantity = item?.quantity || 1;
+
+                // Formatted item line cleanly: `${item?.name || ''} ${item?.flavor || ''} ${item?.size || ''} • ₱${Number(item?.price || 0).toFixed(2)} x${item?.quantity || 1}`
+                const labelText = `${[name, flavor, size].filter(Boolean).join(' ')} • ₱${unitPrice.toFixed(2)} x${quantity}`.trim();
 
                 return (
-                  <div key={item.id} className="flex justify-between items-center text-xs">
+                  <div key={itemKey} className="flex justify-between items-center text-xs">
                     <span className="truncate pr-2 font-medium text-[#3B2215]">
-                      {itemLabel}
+                      {labelText}
                     </span>
+                    {/* Right column displays unit price */}
                     <span className="font-mono text-[#5C3D2E] font-semibold shrink-0">
-                      ₱{item.price.toFixed(2)}
+                      ₱{unitPrice.toFixed(2)}
                     </span>
                   </div>
                 );

@@ -1,6 +1,6 @@
 export interface LaravelFile {
   path: string;
-  category: 'Migration' | 'Model' | 'Seeder' | 'Livewire' | 'Blade View' | 'Deployment' | 'Security & RBAC' | 'Events & Echo' | 'Routes & Config';
+  category: 'Migration' | 'Model' | 'Seeder' | 'Livewire' | 'Blade View' | 'Deployment' | 'Security & RBAC' | 'Events & Echo' | 'Routes & Config' | 'FormRequest' | 'Controller';
   description: string;
   code: string;
 }
@@ -2640,5 +2640,304 @@ class StaffPosDashboard extends Component
         </div>
     </div>
 </div>`,
+  },
+  {
+    path: 'app/Http/Requests/StoreDeliveryOrderRequest.php',
+    category: 'FormRequest',
+    description: 'Laravel 13 Form Request validating Philippine mobile contact number and GCash proof of payment image upload',
+    code: `<?php
+
+namespace App\\Http\\Requests;
+
+use Illuminate\\Foundation\\Http\\FormRequest;
+use Illuminate\\Validation\\Rule;
+
+class StoreDeliveryOrderRequest extends FormRequest
+{
+    /**
+     * Determine if the user is authorized to make this request.
+     */
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array<string, \\Illuminate\\Contracts\\Validation\\ValidationRule|array<mixed>|string>
+     */
+    public function rules(): array
+    {
+        return [
+            'customer_name' => ['required', 'string', 'min:2', 'max:100'],
+            'delivery_address' => ['required', 'string', 'min:5', 'max:255'],
+            'city_region' => ['required', 'string', 'max:100'],
+            'postal_code' => ['required', 'string', 'max:10'],
+            // Strict Philippine Mobile Number: Exactly 11 digits starting with 09
+            'contact_number' => [
+                'required',
+                'string',
+                'regex:/^09\\d{9}$/',
+            ],
+            'driver_notes' => ['nullable', 'string', 'max:300'],
+            'payment_method' => ['required', Rule::in(['cash', 'online'])],
+            
+            // GCash Proof of Payment: Mandatory if payment_method is online, image <= 5MB
+            'gcash_receipt' => [
+                'required_if:payment_method,online',
+                'nullable',
+                'file',
+                'image',
+                'mimes:png,jpg,jpeg,webp',
+                'max:5120', // 5MB limit in kilobytes
+            ],
+
+            // Cart Items Array
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.item_id' => ['required', 'exists:menu_items,id'],
+            'items.*.quantity' => ['required', 'integer', 'min:1', 'max:50'],
+            'items.*.customizations' => ['nullable', 'array'],
+        ];
+    }
+
+    /**
+     * Custom error messages for client feedback.
+     */
+    public function messages(): array
+    {
+        return [
+            'contact_number.required' => 'Customer contact number is required for delivery coordination.',
+            'contact_number.regex' => 'Please enter a valid 11-digit Philippine mobile number starting with 09 (e.g. 09171234567).',
+            'gcash_receipt.required_if' => 'Proof of Payment image upload is mandatory for GCash transactions.',
+            'gcash_receipt.image' => 'The proof of payment must be a valid image file.',
+            'gcash_receipt.mimes' => 'The proof of payment must be in PNG, JPG, JPEG, or WEBP format.',
+            'gcash_receipt.max' => 'The proof of payment image cannot exceed 5MB.',
+        ];
+    }
+}`,
+  },
+  {
+    path: 'app/Http/Controllers/Api/OrderApiController.php',
+    category: 'Controller',
+    description: 'Laravel 13 API Controller processing multipart delivery orders, receipt storage, and inventory locks',
+    code: `<?php
+
+namespace App\\Http\\Controllers\\Api;
+
+use App\\Http\\Controllers\\Controller;
+use App\\Http\\Requests\\StoreDeliveryOrderRequest;
+use App\\Models\\Order;
+use App\\Models\\OrderItem;
+use App\\Models\\MenuItem;
+use App\\Models\\AddOn;
+use App\\Events\\OrderPlaced;
+use Illuminate\\Http\\JsonResponse;
+use Illuminate\\Support\\Facades\\DB;
+use Illuminate\\Support\\Facades\\Storage;
+use Illuminate\\Support\\Str;
+
+class OrderApiController extends Controller
+{
+    /**
+     * Store a newly placed order via REST API / multipart form-data.
+     */
+    public function store(StoreDeliveryOrderRequest $request): JsonResponse
+    {
+        $validated = $request->validated();
+
+        $order = DB::transaction(function () use ($request, $validated) {
+            $receiptPath = null;
+
+            // 1. Process uploaded GCash Proof of Payment image if present
+            if ($request->hasFile('gcash_receipt') && $request->file('gcash_receipt')->isValid()) {
+                // Stores in storage/app/public/receipts
+                $storedFile = $request->file('gcash_receipt')->store('receipts', 'public');
+                $receiptPath = Storage::url($storedFile);
+            }
+
+            // 2. Calculate verified total amount & verify stock
+            $totalAmount = 0.00;
+            $itemsToCreate = [];
+
+            foreach ($validated['items'] as $itemData) {
+                $menuItem = MenuItem::where('id', $itemData['item_id'])->lockForUpdate()->firstOrFail();
+                
+                $unitPrice = (float) $menuItem->price;
+                $customizations = $itemData['customizations'] ?? [];
+
+                if (!empty($customizations['size']) && $customizations['size'] === '22oz') {
+                    $unitPrice += 20.00;
+                }
+
+                if (!empty($customizations['add_ons'])) {
+                    $addOnIds = collect($customizations['add_ons'])->pluck('id')->filter();
+                    if ($addOnIds->isNotEmpty()) {
+                        $unitPrice += (float) AddOn::whereIn('id', $addOnIds)->sum('price');
+                    }
+                }
+
+                $totalAmount += $unitPrice * $itemData['quantity'];
+                $itemsToCreate[] = [
+                    'menu_item_id' => $menuItem->id,
+                    'quantity' => $itemData['quantity'],
+                    'price' => $unitPrice,
+                    'customizations' => $customizations,
+                ];
+            }
+
+            // 3. Create Order Record with delivery details & receipt
+            // Mandatory Verification Workflow: all orders begin in Pending Verification
+            $order = Order::create([
+                'tracking_token' => strtoupper(Str::random(8)),
+                'customer_name' => $validated['customer_name'],
+                'order_type' => 'take-out', // Delivery/take-out
+                'total_amount' => $totalAmount,
+                'payment_method' => $validated['payment_method'],
+                'payment_status' => 'unpaid',
+                'order_status' => 'pending', // Starts in pending verification until Staff approves
+                'contact_number' => $validated['contact_number'],
+                'delivery_address' => "{$validated['delivery_address']}, {$validated['city_region']} {$validated['postal_code']}",
+                'driver_notes' => $validated['driver_notes'] ?? null,
+                'gcash_receipt_path' => $receiptPath,
+            ]);
+
+            // 4. Create Order Items
+            foreach ($itemsToCreate as $itemSpec) {
+                $order->items()->create($itemSpec);
+            }
+
+            return $order;
+        });
+
+        // 5. Broadcast Real-Time Order Event to Kitchen Display System (KDS)
+        broadcast(new OrderPlaced($order->fresh(['items.menuItem'])))->toOthers();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Order placed successfully and transmitted to kitchen for payment verification.',
+            'order' => [
+                'id' => $order->id,
+                'tracking_token' => $order->tracking_token,
+                'status' => $order->order_status,
+                'payment_method' => $order->payment_method,
+                'payment_status' => $order->payment_status,
+                'gcash_receipt_path' => $order->gcash_receipt_path,
+                'total_amount' => $order->total_amount,
+            ],
+        ], 201);
+    }
+}
+`,
+  },
+  {
+    path: 'app/Http/Controllers/Api/StaffOrderVerificationController.php',
+    category: 'Controller',
+    description: 'Laravel 13 API Controller managing mandatory payment verification (Cash/GCash receipt) and order approval/rejection',
+    code: `<?php
+
+namespace App\\Http\\Controllers\\Api;
+
+use App\\Http\\Controllers\\Controller;
+use App\\Models\\Order;
+use App\\Events\\OrderStatusUpdated;
+use Illuminate\\Http\\JsonResponse;
+use Illuminate\\Http\\Request;
+use Illuminate\\Support\\Facades\\DB;
+
+class StaffOrderVerificationController extends Controller
+{
+    /**
+     * Verify payment (Cash or GCash proof of payment) and transition order to Kitchen preparation.
+     * Route: POST /api/staff/orders/{order}/verify-payment
+     */
+    public function verifyPayment(Request $request, Order $order): JsonResponse
+    {
+        // 1. Authorize staff permissions via Sanctum / Spatie token ability
+        if (!$request->user() || !$request->user()->tokenCan('role:staff')) {
+            return response()->json(['message' => 'Unauthorized. Staff ability required.'], 403);
+        }
+
+        // 2. Ensure order is in pending verification state
+        if ($order->order_status !== 'pending') {
+            return response()->json([
+                'message' => "Order #{$order->tracking_token} is already in '{$order->order_status}' status.",
+            ], 422);
+        }
+
+        // 3. Perform atomic state transition and inventory deduction
+        DB::transaction(function () use ($order, $request) {
+            $order->update([
+                'payment_status' => 'paid',
+                'order_status' => 'preparing',
+                'verified_by_user_id' => $request->user()->id,
+                'verified_at' => now(),
+            ]);
+
+            // Atomically lock and deduct recipe and cup container stock
+            $order->markAsPaid();
+        });
+
+        // 4. Broadcast real-time event to customer Livewire tracker
+        broadcast(new OrderStatusUpdated($order, 'preparing'))->toOthers();
+
+        return response()->json([
+            'success' => true,
+            'message' => "Order #{$order->tracking_token} payment successfully verified. Sent to kitchen preparation.",
+            'order' => [
+                'id' => $order->id,
+                'tracking_token' => $order->tracking_token,
+                'order_status' => $order->order_status,
+                'payment_status' => $order->payment_status,
+                'verified_at' => $order->verified_at,
+            ],
+        ]);
+    }
+
+    /**
+     * Reject an order with invalid payment receipt, mismatch, or counter non-payment.
+     * Route: POST /api/staff/orders/{order}/reject
+     */
+    public function rejectOrder(Request $request, Order $order): JsonResponse
+    {
+        // 1. Authorize staff permissions
+        if (!$request->user() || !$request->user()->tokenCan('role:staff')) {
+            return response()->json(['message' => 'Unauthorized. Staff ability required.'], 403);
+        }
+
+        $validated = $request->validate([
+            'reason' => 'required|string|max:255',
+        ]);
+
+        DB::transaction(function () use ($order, $validated, $request) {
+            $order->update([
+                'order_status' => 'cancelled',
+                'cancellation_reason' => $validated['reason'],
+                'rejected_by_user_id' => $request->user()->id,
+                'rejected_at' => now(),
+            ]);
+
+            // Release table if dine-in order
+            if ($order->table_id && $order->table) {
+                $order->table->update(['status' => 'available']);
+            }
+        });
+
+        // Broadcast cancellation to customer Livewire tracker
+        broadcast(new OrderStatusUpdated($order, 'cancelled'))->toOthers();
+
+        return response()->json([
+            'success' => true,
+            'message' => "Order #{$order->tracking_token} has been rejected.",
+            'order' => [
+                'id' => $order->id,
+                'tracking_token' => $order->tracking_token,
+                'order_status' => 'cancelled',
+                'cancellation_reason' => $validated['reason'],
+            ],
+        ]);
+    }
+}
+`,
   },
 ];

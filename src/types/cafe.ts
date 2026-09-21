@@ -129,6 +129,9 @@ export interface OrderItem {
   order_id?: number;
   menu_item_id: number;
   item_name: string;
+  name?: string;
+  flavor?: string;
+  size?: string;
   quantity: number;
   price: number;
   image_path?: string;
