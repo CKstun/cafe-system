@@ -137,15 +137,12 @@ export const Screen2Onboarding: React.FC = () => {
             </p>
           )}
 
-          {/* View Menu Button (Unified CTA Button) */}
+          {/* View Menu Button (Unified CTA Button with dynamic disabled styling) */}
           <div className="pt-2">
             <button
               onClick={handleContinue}
-              className={`w-full py-3.5 px-6 rounded-2xl text-sm font-bold shadow-md transition duration-200 active:scale-98 text-center ${
-                isFormValid
-                  ? 'bg-[#5C3D2E] hover:bg-[#4A2F22] active:bg-[#3D261B] text-white cursor-pointer'
-                  : 'bg-[#D4C1AD] text-white/90 cursor-not-allowed shadow-none'
-              }`}
+              disabled={!isFormValid}
+              className="w-full py-3.5 px-6 rounded-2xl text-sm font-bold shadow-md transition duration-200 active:scale-98 text-center bg-[#4A2E19] text-white hover:bg-[#382212] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none"
             >
               View Menu →
             </button>

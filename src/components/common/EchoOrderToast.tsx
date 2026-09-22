@@ -73,7 +73,7 @@ export const EchoOrderToast: React.FC = () => {
           <div className="flex items-center justify-between text-[11px] text-[#A6978A]">
             <span className="capitalize">
               {payload.order_type === 'dine-in'
-                ? `Table #${payload.table_id || '?'}`
+                ? 'Dine-in (Counter Pickup)'
                 : payload.order_type === 'delivery'
                 ? 'Delivery Order'
                 : 'Take-out Order'}

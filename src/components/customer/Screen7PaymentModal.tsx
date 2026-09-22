@@ -176,16 +176,12 @@ export const Screen7PaymentModal: React.FC = () => {
           <span>Encrypted Order Transmission to Kitchen Display</span>
         </div>
 
-        {/* Unified CTA Button */}
+        {/* Unified CTA Button with dynamic disabled styling */}
         <button
           type="button"
           onClick={handleConfirmOrder}
           disabled={isProcessing || !isPaymentValid}
-          className={`w-full py-3.5 px-6 font-bold rounded-2xl text-sm sm:text-base shadow-md transition flex items-center justify-center gap-2 transform active:scale-98 ${
-            !isPaymentValid
-              ? 'bg-[#D8C7BA] text-white/90 cursor-not-allowed shadow-none'
-              : 'bg-[#5C3D2E] hover:bg-[#4A2F22] active:bg-[#3D261B] text-white cursor-pointer shadow-md'
-          }`}
+          className="w-full py-3.5 px-6 font-bold rounded-2xl text-sm sm:text-base shadow-md transition flex items-center justify-center gap-2 transform active:scale-98 bg-[#4A2E19] hover:bg-[#382212] text-white cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none"
         >
           {isProcessing ? (
             <span>Transmitting Order...</span>

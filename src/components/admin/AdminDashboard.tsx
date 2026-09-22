@@ -21,6 +21,8 @@ import {
   Menu,
   X,
   User,
+  Download,
+  Filter,
 } from 'lucide-react';
 import { User as UserType, MenuItem, Role } from '../../types/cafe';
 import { SpatieRolesTab } from './SpatieRolesTab';
@@ -61,10 +63,20 @@ export const AdminDashboard: React.FC = () => {
       if (path.includes('products') || path.includes('categories') || path.includes('menu')) return 'products';
       if (path.includes('staff')) return 'staff';
       if (path.includes('roles')) return 'roles';
-      if (path.includes('analytics')) return 'analytics';
+      if (path.includes('analytics') || path.includes('reports')) return 'analytics';
     }
     return 'analytics';
   });
+
+  // Keep activeTab synchronized with currentPath
+  React.useEffect(() => {
+    if (currentPath.includes('recipe')) setActiveTab('recipes');
+    else if (currentPath.includes('inventory')) setActiveTab('inventory');
+    else if (currentPath.includes('products') || currentPath.includes('categories') || currentPath.includes('menu')) setActiveTab('products');
+    else if (currentPath.includes('staff')) setActiveTab('staff');
+    else if (currentPath.includes('roles')) setActiveTab('roles');
+    else if (currentPath.includes('analytics') || currentPath.includes('reports')) setActiveTab('analytics');
+  }, [currentPath]);
 
   const [recipeLinkerItemId, setRecipeLinkerItemId] = useState<number | undefined>(undefined);
 
@@ -76,7 +88,17 @@ export const AdminDashboard: React.FC = () => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   // Analytics Date Filter
-  const [dateRange, setDateRange] = useState<'today' | '7days' | '30days' | 'all'>('all');
+  const [dateRange, setDateRange] = useState<'today' | '7days' | '30days' | 'custom' | 'all'>('all');
+  const [startDate, setStartDate] = useState<string>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    return d.toISOString().split('T')[0];
+  });
+  const [endDate, setEndDate] = useState<string>(() => {
+    return new Date().toISOString().split('T')[0];
+  });
+  const [isExporting, setIsExporting] = useState<boolean>(false);
+  const [exportNotice, setExportNotice] = useState<string | null>(null);
 
   // Staff Form State
   const [showStaffModal, setShowStaffModal] = useState(false);
@@ -126,9 +148,123 @@ export const AdminDashboard: React.FC = () => {
       if (dateRange === '30days') {
         return now - orderTime < 1000 * 60 * 60 * 24 * 30;
       }
+      if (dateRange === 'custom') {
+        const orderDateStr = order.created_at.split('T')[0];
+        if (startDate && orderDateStr < startDate) return false;
+        if (endDate && orderDateStr > endDate) return false;
+        return true;
+      }
       return true;
     });
-  }, [orders, dateRange]);
+  }, [orders, dateRange, startDate, endDate]);
+
+  /**
+   * Export Sales Report:
+   * Triggers backend export endpoint `/api/admin/reports/export?start_date=...&end_date=...`
+   * with seamless fallback CSV generation for offline/preview environments.
+   */
+  const handleExportReport = async () => {
+    setIsExporting(true);
+    setExportNotice(null);
+
+    // Compute effective dates
+    const effectiveStart =
+      dateRange === 'today'
+        ? new Date().toISOString().split('T')[0]
+        : dateRange === '7days'
+        ? new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]
+        : dateRange === '30days'
+        ? new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0]
+        : dateRange === 'custom'
+        ? startDate
+        : '2024-01-01';
+
+    const effectiveEnd =
+      dateRange === 'custom'
+        ? endDate
+        : new Date().toISOString().split('T')[0];
+
+    const exportUrl = `/api/admin/reports/export?start_date=${encodeURIComponent(
+      effectiveStart
+    )}&end_date=${encodeURIComponent(effectiveEnd)}`;
+
+    try {
+      // Attempt backend API call first
+      const response = await fetch(exportUrl, {
+        headers: {
+          Accept: 'text/csv, application/json',
+          Authorization: adminSession?.token ? `Bearer ${adminSession.token}` : '',
+        },
+      });
+
+      if (response.ok && response.headers.get('content-type')?.includes('csv')) {
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = `sales_report_${effectiveStart}_to_${effectiveEnd}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(downloadUrl);
+        setExportNotice(`Exported report from API (${effectiveStart} to ${effectiveEnd})`);
+        setIsExporting(false);
+        return;
+      }
+    } catch {
+      // Backend not running / standalone SPA mode
+    }
+
+    // Client-side CSV generation fallback conforming to the exact export endpoint schema
+    try {
+      const headers = [
+        'Order ID',
+        'Tracking Token',
+        'Customer Name',
+        'Order Type',
+        'Payment Method',
+        'Payment Status',
+        'Order Status',
+        'Total Amount (PHP)',
+        'Items Summary',
+        'Order Date',
+      ];
+
+      const rows = filteredOrders.map((o) => {
+        const itemsSummary = o.items
+          .map((i) => `${i.quantity}x ${i.item_name}`)
+          .join('; ');
+        return [
+          o.id,
+          `"${o.tracking_token}"`,
+          `"${o.customer_name.replace(/"/g, '""')}"`,
+          `"${o.order_type === 'dine-in' ? 'Dine-in (Counter Pickup)' : o.order_type}"`,
+          `"${o.payment_method}"`,
+          `"${o.payment_status}"`,
+          `"${o.order_status}"`,
+          o.total_amount.toFixed(2),
+          `"${itemsSummary.replace(/"/g, '""')}"`,
+          `"${new Date(o.created_at).toISOString()}"`,
+        ];
+      });
+
+      const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `cafe_pepita_sales_${effectiveStart}_to_${effectiveEnd}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(downloadUrl);
+      setExportNotice(`Downloaded ${filteredOrders.length} orders (${effectiveStart} to ${effectiveEnd})`);
+    } catch (err: any) {
+      setExportNotice(`Export failed: ${err.message}`);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const totalRevenue = filteredOrders
     .filter((o) => o.payment_status === 'paid')
@@ -401,7 +537,7 @@ export const AdminDashboard: React.FC = () => {
                 key={tab.id}
                 onClick={() => {
                   setActiveTab(tab.id as any);
-                  navigate(`/admin/${tab.id}`);
+                  navigate(tab.id === 'analytics' ? '/admin/reports' : `/admin/${tab.id}`);
                 }}
                 className={`min-h-[44px] flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
                   isActive
@@ -426,32 +562,101 @@ export const AdminDashboard: React.FC = () => {
         {/* ========================================================================= */}
         {activeTab === 'analytics' && (
           <div className="mt-6 space-y-6">
-            {/* Filter Bar */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#F4EFEB] p-3.5 rounded-2xl border border-[#E6DDD4]">
-              <span className="text-xs font-bold text-[#5C4033] flex items-center gap-1.5">
-                <Calendar className="w-4 h-4" />
-                <span>Filter Reporting Period</span>
-              </span>
-              <div className="flex gap-1.5">
-                {[
-                  { id: 'today', label: 'Today' },
-                  { id: '7days', label: 'Last 7 Days' },
-                  { id: '30days', label: 'Last 30 Days' },
-                  { id: 'all', label: 'All Time' },
-                ].map((d) => (
+            {/* Filter & Export Bar */}
+            <div className="bg-[#F4EFEB] p-4 rounded-2xl border border-[#E6DDD4] space-y-3">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-[#5C4033] flex items-center gap-1.5">
+                    <Calendar className="w-4 h-4" />
+                    <span>Reporting Period:</span>
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { id: 'today', label: 'Today' },
+                      { id: '7days', label: 'Last 7 Days' },
+                      { id: '30days', label: 'Last 30 Days' },
+                      { id: 'custom', label: 'Custom Range' },
+                      { id: 'all', label: 'All Time' },
+                    ].map((d) => (
+                      <button
+                        key={d.id}
+                        type="button"
+                        onClick={() => setDateRange(d.id as any)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-semibold transition cursor-pointer ${
+                          dateRange === d.id
+                            ? 'bg-[#5C4033] text-[#FDFBF7] shadow-xs'
+                            : 'bg-[#FDFBF7] text-[#736357] hover:bg-white border border-transparent hover:border-[#E6DDD4]'
+                        }`}
+                      >
+                        {d.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Export Sales Report CTA Button */}
+                <div className="flex items-center gap-2 self-start lg:self-auto">
                   <button
-                    key={d.id}
-                    onClick={() => setDateRange(d.id as any)}
-                    className={`px-3 py-1 rounded-full text-xs font-semibold transition ${
-                      dateRange === d.id
-                        ? 'bg-[#5C4033] text-[#FDFBF7]'
-                        : 'bg-[#FDFBF7] text-[#736357] hover:bg-white'
-                    }`}
+                    type="button"
+                    id="export-sales-report-btn"
+                    onClick={handleExportReport}
+                    disabled={isExporting || filteredOrders.length === 0}
+                    className="min-h-[38px] px-4 py-2 bg-[#4A2E19] hover:bg-[#3B2414] text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none active:scale-98"
+                    title="Export sales report via GET /api/admin/reports/export"
                   >
-                    {d.label}
+                    <Download className={`w-4 h-4 ${isExporting ? 'animate-bounce' : ''}`} />
+                    <span>{isExporting ? 'Exporting...' : 'Export Sales Report'}</span>
                   </button>
-                ))}
+                </div>
               </div>
+
+              {/* Custom Date Pickers (visible when 'custom' is active) */}
+              {dateRange === 'custom' && (
+                <div className="pt-3 border-t border-[#E6DDD4] flex flex-wrap items-center gap-3 text-xs">
+                  <span className="font-semibold text-[#5C4033] flex items-center gap-1">
+                    <Filter className="w-3.5 h-3.5" />
+                    <span>Select Date Range:</span>
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <label className="text-stone-600 font-medium">From:</label>
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="px-2.5 py-1.5 bg-white border border-[#D5C7BC] rounded-lg text-xs font-medium text-[#2B231F] focus:outline-none focus:ring-1 focus:ring-[#5C4033]"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-stone-600 font-medium">To:</label>
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="px-2.5 py-1.5 bg-white border border-[#D5C7BC] rounded-lg text-xs font-medium text-[#2B231F] focus:outline-none focus:ring-1 focus:ring-[#5C4033]"
+                    />
+                  </div>
+                  <span className="text-[11px] text-[#8C7A6B]">
+                    ({filteredOrders.length} orders matched)
+                  </span>
+                </div>
+              )}
+
+              {/* Feedback toast banner on export */}
+              {exportNotice && (
+                <div className="p-2.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs flex items-center justify-between animate-fadeIn">
+                  <span className="flex items-center gap-1.5 font-medium">
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>{exportNotice}</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setExportNotice(null)}
+                    className="text-stone-400 hover:text-stone-600 text-xs px-1"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Metric KPI Cards */}

@@ -212,16 +212,12 @@ export const ScreenDeliveryDetails: React.FC = () => {
           </div>
         </div>
 
-        {/* Continue to Payment Button (Unified CTA Button) */}
+        {/* Continue to Payment Button (Unified CTA Button with dynamic disabled styling) */}
         <button
           type="button"
           disabled={!isFormValid}
           onClick={handleContinue}
-          className={`w-full mt-4 py-3.5 px-6 rounded-2xl text-sm font-bold transition duration-200 flex items-center justify-center shadow-md ${
-            isFormValid
-              ? 'bg-[#5C3D2E] hover:bg-[#4A2F22] active:bg-[#3D261B] text-white cursor-pointer active:scale-98'
-              : 'bg-[#D8C7BA] text-white/90 cursor-not-allowed shadow-none'
-          }`}
+          className="w-full mt-4 py-3.5 px-6 rounded-2xl text-sm font-bold transition duration-200 flex items-center justify-center shadow-md bg-[#4A2E19] text-white hover:bg-[#382212] cursor-pointer active:scale-98 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none"
         >
           Continue to Payment
         </button>

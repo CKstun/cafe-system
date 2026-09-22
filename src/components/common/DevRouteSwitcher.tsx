@@ -11,6 +11,7 @@ import {
   QrCode,
   CheckCircle,
   XCircle,
+  TrendingUp,
 } from 'lucide-react';
 
 export const DevRouteSwitcher: React.FC = () => {
@@ -186,6 +187,28 @@ export const DevRouteSwitcher: React.FC = () => {
               <span className="flex items-center gap-2">
                 <ShieldCheck className="w-3.5 h-3.5 text-rose-400 shrink-0" />
                 <span>/admin/dashboard</span>
+              </span>
+              {isAdminAuthed ? (
+                <span className="text-[10px] text-emerald-400">Authed</span>
+              ) : (
+                <span className="text-[10px] text-stone-500">Guard</span>
+              )}
+            </button>
+            <button
+              id="dev-nav-admin-reports"
+              onClick={() => {
+                navigate('/admin/reports');
+                setIsOpen(false);
+              }}
+              className={`w-full min-h-[36px] flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition-colors ${
+                currentPath === '/admin/reports'
+                  ? 'bg-rose-500/20 text-rose-300 font-medium'
+                  : 'hover:bg-stone-800 text-stone-300'
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <TrendingUp className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                <span>/admin/reports</span>
               </span>
               {isAdminAuthed ? (
                 <span className="text-[10px] text-emerald-400">Authed</span>

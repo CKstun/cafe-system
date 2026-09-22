@@ -208,7 +208,7 @@ export const Screen8LiveTracker: React.FC = () => {
           <span className="text-[10px] text-[#8C7A6B] block">Dining Type</span>
           <span className="font-bold text-[#2B231F] uppercase">
             {currentOrder.order_type === 'dine-in'
-              ? 'Dine-in'
+              ? 'Dine-in (Counter Pickup)'
               : currentOrder.order_type === 'delivery'
               ? 'Delivery'
               : 'Take-out'}

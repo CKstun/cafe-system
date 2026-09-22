@@ -37,17 +37,17 @@ export const StaffDashboard: React.FC = () => {
     logoutUnified,
   } = useCafe();
 
-  const [activeTab, setActiveTab] = useState<'active' | 'pending' | 'preparing' | 'ready' | 'completed' | 'all'>('pending');
+  const [activeTab, setActiveTab] = useState<'active' | 'preparing' | 'ready' | 'completed' | 'all'>('active');
   const [searchQuery, setSearchQuery] = useState('');
   const [inspectingOrder, setInspectingOrder] = useState<Order | null>(null);
 
-  // Pending verification count
-  const pendingVerificationCount = orders.filter(
+  // Unverified pending verification count for Active Queue badge
+  const unverifiedPaymentCount = orders.filter(
     (o) => o.order_status === 'pending'
   ).length;
 
   const filteredOrders = orders.filter((order) => {
-    // Status filter
+    // Status filter: 'active' queue includes pending verification, preparing, and ready
     let matchesTab = true;
     if (activeTab === 'active') {
       matchesTab = ['pending', 'preparing', 'ready'].includes(order.order_status);
@@ -67,8 +67,9 @@ export const StaffDashboard: React.FC = () => {
   const getStatusBadge = (order: Order) => {
     if (order.order_status === 'pending') {
       return (
-        <span className="bg-amber-100 text-amber-900 border border-amber-300 px-2.5 py-0.5 rounded-full text-[10px] font-bold animate-pulse">
-          Pending Verification
+        <span className="bg-amber-100 text-amber-900 border border-amber-300 px-2.5 py-0.5 rounded-full text-[10px] font-bold animate-pulse inline-flex items-center gap-1">
+          <AlertTriangle className="w-3 h-3 text-amber-700" />
+          <span>Unverified Payment</span>
         </span>
       );
     }
@@ -183,11 +184,11 @@ export const StaffDashboard: React.FC = () => {
         <div className="flex items-center gap-2 overflow-x-auto pb-3 border-b border-[#EFE8E1]">
           {[
             {
-              id: 'pending',
-              label: 'Pending Verification',
-              count: pendingVerificationCount,
+              id: 'active',
+              label: 'Active Queue',
+              count: unverifiedPaymentCount > 0 ? unverifiedPaymentCount : undefined,
+              countLabel: 'unverified',
             },
-            { id: 'active', label: 'Active Queue' },
             { id: 'preparing', label: 'In Kitchen (Brewing)' },
             { id: 'ready', label: 'Ready for Claim' },
             { id: 'completed', label: 'Completed' },
@@ -205,6 +206,7 @@ export const StaffDashboard: React.FC = () => {
               <span>{tab.label}</span>
               {typeof tab.count === 'number' && tab.count > 0 && (
                 <span
+                  title={`${tab.count} unverified payment order(s)`}
                   className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
                     activeTab === tab.id
                       ? 'bg-amber-400 text-stone-900'
@@ -257,7 +259,7 @@ export const StaffDashboard: React.FC = () => {
                     <div className="text-right">
                       <span className="text-xs font-bold uppercase text-[#5C4033] bg-[#EFE8E1] px-2.5 py-1 rounded-full border border-[#E6DDD4]">
                         {order.order_type === 'dine-in'
-                          ? `Dine-in (Table ${order.table_id || '?'})`
+                          ? 'Dine-in (Counter Pickup)'
                           : order.order_type === 'delivery'
                           ? 'Delivery'
                           : 'Take-out'}
