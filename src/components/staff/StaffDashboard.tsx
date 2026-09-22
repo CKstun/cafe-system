@@ -34,7 +34,7 @@ export const StaffDashboard: React.FC = () => {
     soundEnabled,
     setSoundEnabled,
     staffSession,
-    logoutStaff,
+    logoutUnified,
   } = useCafe();
 
   const [activeTab, setActiveTab] = useState<'active' | 'pending' | 'preparing' | 'ready' | 'completed' | 'all'>('pending');
@@ -165,7 +165,7 @@ export const StaffDashboard: React.FC = () => {
               <button
                 type="button"
                 id="staff-logout-btn"
-                onClick={() => logoutStaff()}
+                onClick={() => logoutUnified()}
                 className="min-h-[44px] px-3.5 py-2 bg-white hover:bg-rose-50 text-stone-700 hover:text-rose-700 border border-[#E6DDD4] hover:border-rose-300 font-bold rounded-xl text-xs flex items-center gap-2 transition-colors cursor-pointer shadow-2xs"
                 title="Log out of Staff Portal"
               >

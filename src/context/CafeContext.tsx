@@ -95,10 +95,14 @@ interface CafeContextType {
   // Sanctum Token Authentication & Sessions
   staffSession: AuthSession | null;
   adminSession: AuthSession | null;
+  currentAuthSession: AuthSession | null;
   loginStaff: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logoutStaff: () => Promise<void>;
   loginAdmin: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logoutAdmin: () => Promise<void>;
+  loginUnified: (email: string, password: string) => Promise<{ success: boolean; user?: User; token?: string; error?: string }>;
+  logoutUnified: () => Promise<void>;
+  resetEmployeePassword: (userId: number, newPassword: string) => Promise<{ success: boolean; message?: string; error?: string }>;
   authRedirectNotice: string | null;
   setAuthRedirectNotice: (notice: string | null) => void;
 
@@ -245,6 +249,9 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   });
 
+  // Unified Sanctum Session (admin takes precedence, otherwise staff)
+  const currentAuthSession = adminSession || staffSession || null;
+
   const [authRedirectNotice, setAuthRedirectNotice] = useState<string | null>(null);
 
   // Navigate helper with HTML5 History API
@@ -271,7 +278,9 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Route Synchronization Engine
   useEffect(() => {
-    if (currentPath === '/staff/login') {
+    if (currentPath === '/login') {
+      setViewMode('staff_login'); // renders UnifiedLogin
+    } else if (currentPath === '/staff/login') {
       setViewMode('staff_login');
     } else if (currentPath.startsWith('/staff')) {
       if (!staffSession) {
@@ -558,6 +567,115 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAdminSession(null);
     setAuthRedirectNotice('Admin session ended. Token revoked on server.');
     navigate('/admin/login');
+  };
+
+  // Unified Sanctum Login Interface (POST /api/login)
+  const loginUnified = async (
+    email: string,
+    passwordInput: string
+  ): Promise<{ success: boolean; user?: User; token?: string; error?: string }> => {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPass = passwordInput.trim();
+
+    if (!cleanEmail || !cleanPass) {
+      return { success: false, error: 'Email and password are required.' };
+    }
+
+    // Lookup in staff/admin users list
+    const matchedUser = staffUsers.find(
+      (u) =>
+        u.email.toLowerCase() === cleanEmail ||
+        u.name.toLowerCase() === cleanEmail ||
+        cleanEmail.startsWith(u.email.toLowerCase().split('@')[0])
+    );
+
+    // Fallback known accounts (admin & staff)
+    const isAdmin =
+      (matchedUser && matchedUser.role === 'admin') ||
+      cleanEmail === 'admin@cafepepita.com' ||
+      cleanEmail === 'admin@cafepita.com' ||
+      cleanEmail === 'admin' ||
+      cleanEmail === 'owner@cafepepita.com';
+
+    const isStaff =
+      (matchedUser && matchedUser.role === 'staff') ||
+      cleanEmail === 'staff@cafepepita.com' ||
+      cleanEmail === 'staff@cafepita.com' ||
+      cleanEmail === 'barista@cafepepita.com' ||
+      cleanEmail === 'cheska' ||
+      cleanEmail === 'marco@cafepita.com';
+
+    if (!matchedUser && !isAdmin && !isStaff) {
+      return {
+        success: false,
+        error: 'These credentials do not match our records.',
+      };
+    }
+
+    // Check custom password if set via reset, otherwise default min 4 chars
+    if (matchedUser && matchedUser.password) {
+      if (cleanPass !== matchedUser.password) {
+        return {
+          success: false,
+          error: 'These credentials do not match our records.',
+        };
+      }
+    } else if (cleanPass.length < 4) {
+      return {
+        success: false,
+        error: 'Password must be at least 4 characters long.',
+      };
+    }
+
+    const assignedRole: Role = isAdmin ? 'admin' : 'staff';
+    const finalUser: User = matchedUser || {
+      id: isAdmin ? 1 : 2,
+      name: isAdmin ? 'Admin Manager' : 'Cheska Kimberly (Barista)',
+      email: cleanEmail.includes('@') ? cleanEmail : `${cleanEmail}@cafepepita.com`,
+      role: assignedRole,
+      created_at: new Date().toISOString().split('T')[0],
+    };
+
+    const session: AuthSession = {
+      token: `1|sanctum_${assignedRole}_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+      user: {
+        id: finalUser.id,
+        name: finalUser.name,
+        email: finalUser.email,
+        role: assignedRole === 'admin' ? 'admin' : 'staff',
+      },
+      abilities: [assignedRole === 'admin' ? 'role:admin' : 'role:staff'],
+      login_at: new Date().toISOString(),
+    };
+
+    if (assignedRole === 'admin') {
+      localStorage.setItem('cp_admin_session', JSON.stringify(session));
+      setAdminSession(session);
+      setCurrentUserRole('admin');
+      setAuthRedirectNotice(null);
+      navigate('/admin/dashboard');
+    } else {
+      localStorage.setItem('cp_staff_session', JSON.stringify(session));
+      setStaffSession(session);
+      setCurrentUserRole('staff');
+      setAuthRedirectNotice(null);
+      navigate('/staff/orders');
+    }
+
+    return {
+      success: true,
+      user: finalUser,
+      token: session.token,
+    };
+  };
+
+  const logoutUnified = async (): Promise<void> => {
+    localStorage.removeItem('cp_admin_session');
+    localStorage.removeItem('cp_staff_session');
+    setAdminSession(null);
+    setStaffSession(null);
+    setAuthRedirectNotice('Logged out successfully. Sanctum session terminated.');
+    navigate('/login');
   };
 
   // Entities
@@ -1413,6 +1531,37 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setStaffUsers((prev) => prev.filter((u) => u.id !== id));
   };
 
+  // POST /api/admin/users/{id}/reset-password
+  const resetEmployeePassword = async (
+    userId: number,
+    newPassword: string
+  ): Promise<{ success: boolean; message?: string; error?: string }> => {
+    const targetUser = staffUsers.find((u) => u.id === userId);
+    if (!targetUser) {
+      return { success: false, error: 'Employee account not found.' };
+    }
+
+    if (!newPassword || newPassword.length < 8) {
+      return { success: false, error: 'Password must be at least 8 characters long.' };
+    }
+
+    // Update password in staff users state
+    setStaffUsers((prev) =>
+      prev.map((u) => (u.id === userId ? { ...u, password: newPassword, updated_at: new Date().toISOString() } : u))
+    );
+
+    // If target user is the currently logged in staff member, revoke their active token
+    if (staffSession && staffSession.user.id === userId) {
+      localStorage.removeItem('cp_staff_session');
+      setStaffSession(null);
+    }
+
+    return {
+      success: true,
+      message: `Password for ${targetUser.name} has been reset successfully. Existing Sanctum tokens revoked.`,
+    };
+  };
+
   const addMenuItem = (item: Omit<MenuItem, 'id'>) => {
     const newItem: MenuItem = {
       ...item,
@@ -1580,10 +1729,14 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
         navigate,
         staffSession,
         adminSession,
+        currentAuthSession,
         loginStaff,
         logoutStaff,
         loginAdmin,
         logoutAdmin,
+        loginUnified,
+        logoutUnified,
+        resetEmployeePassword,
         authRedirectNotice,
         setAuthRedirectNotice,
         currentUserRole,

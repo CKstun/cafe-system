@@ -3,8 +3,7 @@ import { CafeProvider, useCafe } from './context/CafeContext';
 import { CustomerApp } from './components/customer/CustomerApp';
 import { StaffDashboard } from './components/staff/StaffDashboard';
 import { AdminDashboard } from './components/admin/AdminDashboard';
-import { StaffLogin } from './components/auth/StaffLogin';
-import { AdminLogin } from './components/auth/AdminLogin';
+import { UnifiedLogin } from './components/auth/UnifiedLogin';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { LaravelCodeViewer } from './components/laravel/LaravelCodeViewer';
 import { QrCodeModal } from './components/common/QrCodeModal';
@@ -16,35 +15,30 @@ const AppContent: React.FC = () => {
   const { currentPath } = useCafe();
 
   const renderRoute = () => {
-    // 1. Staff Authentication
-    if (currentPath === '/staff/login') {
-      return <StaffLogin />;
+    // 1. Unified Employee Authentication (/login, /staff/login, /admin/login)
+    if (currentPath === '/login' || currentPath === '/staff/login' || currentPath === '/admin/login') {
+      return <UnifiedLogin />;
     }
 
-    // 2. Staff Protected Routes
+    // 2. Staff Protected Routes (/staff/*, /staff/orders, /staff/dashboard)
     if (currentPath.startsWith('/staff')) {
       return (
-        <ProtectedRoute role="staff">
+        <ProtectedRoute allowedRoles={['staff', 'admin']}>
           <StaffDashboard />
         </ProtectedRoute>
       );
     }
 
-    // 3. Admin Authentication
-    if (currentPath === '/admin/login') {
-      return <AdminLogin />;
-    }
-
-    // 4. Admin Protected Routes
+    // 3. Admin Protected Routes (/admin/*, /admin/dashboard, /admin/users)
     if (currentPath.startsWith('/admin')) {
       return (
-        <ProtectedRoute role="admin">
+        <ProtectedRoute allowedRoles={['admin']}>
           <AdminDashboard />
         </ProtectedRoute>
       );
     }
 
-    // 5. Architecture & Physical QR Standees
+    // 4. Architecture & Physical QR Standees
     if (currentPath === '/codebase') {
       return <LaravelCodeViewer />;
     }
@@ -52,12 +46,12 @@ const AppContent: React.FC = () => {
       return <QrCodeModal />;
     }
 
-    // 6. Public Customer Experience (/welcome, /menu, /cart, /checkout, /order-status)
+    // 5. Public Customer Experience (/welcome, /menu, /cart, /checkout, /order-status)
     return <CustomerApp />;
   };
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] text-[#2B231F] flex flex-col font-sans selection:bg-[#5C4033] selection:text-[#FDFBF7]">
+    <div className="min-h-screen bg-[#FDFBF7] text-[#2B231F] flex flex-col font-sans selection:bg-[#4A2E19] selection:text-[#FDFBF7]">
       {/* Real-Time Echo Notifications & Spatie RBAC Interceptor */}
       <EchoOrderToast />
       <SpatieUnauthorizedModal />

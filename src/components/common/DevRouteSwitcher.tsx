@@ -109,38 +109,42 @@ export const DevRouteSwitcher: React.FC = () => {
             </button>
 
             <div className="text-[10px] uppercase font-bold text-stone-400 px-1 pt-2">
-              Staff Portal
+              Employee Authentication
             </div>
             <button
-              id="dev-nav-staff-login"
+              id="dev-nav-unified-login"
               onClick={() => {
-                navigate('/staff/login');
+                navigate('/login');
                 setIsOpen(false);
               }}
               className={`w-full min-h-[36px] flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${
-                currentPath === '/staff/login'
+                currentPath === '/login' || currentPath === '/staff/login' || currentPath === '/admin/login'
                   ? 'bg-amber-500/20 text-amber-300 font-medium'
                   : 'hover:bg-stone-800 text-stone-300'
               }`}
             >
-              <ChefHat className="w-3.5 h-3.5 text-orange-400 shrink-0" />
-              <span>/staff/login</span>
+              <ChefHat className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span>/login (Unified Employee)</span>
             </button>
+
+            <div className="text-[10px] uppercase font-bold text-stone-400 px-1 pt-2">
+              Staff Portal
+            </div>
             <button
               id="dev-nav-staff-dash"
               onClick={() => {
-                navigate('/staff/dashboard');
+                navigate('/staff/orders');
                 setIsOpen(false);
               }}
               className={`w-full min-h-[36px] flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition-colors ${
-                currentPath === '/staff/dashboard'
+                currentPath.startsWith('/staff')
                   ? 'bg-amber-500/20 text-amber-300 font-medium'
                   : 'hover:bg-stone-800 text-stone-300'
               }`}
             >
               <span className="flex items-center gap-2">
                 <ChefHat className="w-3.5 h-3.5 text-orange-400 shrink-0" />
-                <span>/staff/dashboard</span>
+                <span>/staff/orders (POS/KDS)</span>
               </span>
               {isStaffAuthed ? (
                 <span className="text-[10px] text-emerald-400">Authed</span>

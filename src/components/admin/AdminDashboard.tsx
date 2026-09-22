@@ -26,6 +26,7 @@ import { User as UserType, MenuItem, Role } from '../../types/cafe';
 import { SpatieRolesTab } from './SpatieRolesTab';
 import { InventoryManager } from './InventoryManager';
 import { RecipeLinker } from './RecipeLinker';
+import { UserManagement } from './UserManagement';
 
 export const AdminDashboard: React.FC = () => {
   const {
@@ -47,7 +48,7 @@ export const AdminDashboard: React.FC = () => {
     restockUnit,
     restockMenuItem,
     adminSession,
-    logoutAdmin,
+    logoutUnified,
     currentPath,
     navigate,
   } = useCafe();
@@ -289,9 +290,9 @@ export const AdminDashboard: React.FC = () => {
             <button
               type="button"
               id="admin-logout-btn"
-              onClick={() => logoutAdmin()}
+              onClick={() => logoutUnified()}
               className="min-h-[44px] px-3.5 py-2 bg-rose-50 hover:bg-rose-100 active:bg-rose-200 text-rose-800 border border-rose-300 font-bold rounded-xl text-xs flex items-center gap-2 transition-colors cursor-pointer shadow-xs"
-              title="Revoke Sanctum token and return to Admin Login"
+              title="Revoke Sanctum token and return to Login"
             >
               <LogOut className="w-4 h-4 text-rose-600" />
               <span>Admin Logout</span>
@@ -370,7 +371,7 @@ export const AdminDashboard: React.FC = () => {
                 type="button"
                 onClick={() => {
                   setIsDrawerOpen(false);
-                  logoutAdmin();
+                  logoutUnified();
                 }}
                 className="w-full min-h-[44px] py-2.5 px-3 bg-rose-50 hover:bg-rose-100 text-rose-800 font-bold rounded-xl text-xs flex items-center justify-center gap-2 border border-rose-300"
               >
@@ -541,85 +542,11 @@ export const AdminDashboard: React.FC = () => {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 2: STAFF ACCOUNT CRUD */}
+        {/* TAB 2: USER MANAGEMENT & CREDENTIAL RESETS */}
         {/* ========================================================================= */}
         {activeTab === 'staff' && (
-          <div className="mt-6 space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-display text-base font-bold text-[#2B231F]">
-                  Staff & Barista Accounts
-                </h3>
-                <p className="text-xs text-[#8C7A6B]">
-                  Manage authorized users for POS order processing and status advancement.
-                </p>
-              </div>
-              <button
-                onClick={() => {
-                  setEditingStaffId(null);
-                  setStaffName('');
-                  setStaffEmail('');
-                  setStaffRole('staff');
-                  setShowStaffModal(true);
-                }}
-                className="px-4 py-2 bg-[#5C4033] text-[#FDFBF7] text-xs font-bold rounded-full shadow-xs flex items-center gap-1.5 hover:bg-[#4A3328]"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Add Staff Member</span>
-              </button>
-            </div>
-
-            <div className="bg-[#FDFBF7] rounded-3xl border border-[#EFE8E1] overflow-hidden shadow-xs">
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs text-left">
-                  <thead>
-                    <tr className="bg-[#F4EFEB] border-b border-[#E6DDD4] text-[#8C7A6B] uppercase tracking-wider text-[10px]">
-                      <th className="py-3.5 px-4 font-semibold">User Name</th>
-                      <th className="py-3.5 px-4 font-semibold">Email Address</th>
-                      <th className="py-3.5 px-4 font-semibold">Role</th>
-                      <th className="py-3.5 px-4 font-semibold text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#F4EFEB]">
-                    {staffUsers.map((staff) => (
-                      <tr key={staff.id} className="hover:bg-[#F4EFEB]/40">
-                        <td className="py-3.5 px-4 font-bold text-[#2B231F]">{staff.name}</td>
-                        <td className="py-3.5 px-4 text-[#736357] font-mono">{staff.email}</td>
-                        <td className="py-3.5 px-4">
-                          <span
-                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                              staff.role === 'admin'
-                                ? 'bg-purple-100 text-purple-900'
-                                : 'bg-[#EFE8E1] text-[#5C4033]'
-                            }`}
-                          >
-                            {staff.role}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 text-right space-x-2">
-                          <button
-                            onClick={() => handleOpenStaffEdit(staff)}
-                            className="p-1.5 hover:bg-[#EFE8E1] text-[#5C4033] rounded-full transition"
-                            title="Edit Staff Member"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                          {staff.role !== 'admin' && (
-                            <button
-                              onClick={() => deleteStaffUser(staff.id)}
-                              className="p-1.5 hover:bg-red-50 text-[#DC2626] rounded-full transition"
-                              title="Remove Staff Member"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+          <div className="mt-6">
+            <UserManagement />
           </div>
         )}
 
