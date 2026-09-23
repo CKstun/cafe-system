@@ -21,6 +21,8 @@ import {
 } from 'lucide-react';
 import { Order, OrderStatus } from '../../types/cafe';
 import { OrderVerificationModal } from './OrderVerificationModal';
+import { Header } from '../common/Header';
+import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard';
 
 export const StaffDashboard: React.FC = () => {
   const {
@@ -40,6 +42,15 @@ export const StaffDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'active' | 'preparing' | 'ready' | 'completed' | 'all'>('active');
   const [searchQuery, setSearchQuery] = useState('');
   const [inspectingOrder, setInspectingOrder] = useState<Order | null>(null);
+
+  // Unsaved changes guard: prevent refresh/navigation when reviewing an inline payment verification modal
+  useUnsavedChangesGuard({
+    when: inspectingOrder !== null,
+    role: 'staff',
+    reason: inspectingOrder
+      ? `Payment verification modal open for Order #${inspectingOrder.tracking_token}`
+      : 'Order verification in progress',
+  });
 
   // Unverified pending verification count for Active Queue badge
   const unverifiedPaymentCount = orders.filter(
@@ -76,7 +87,7 @@ export const StaffDashboard: React.FC = () => {
     if (order.order_status === 'preparing') {
       return (
         <span className="bg-[#5C4033] text-[#FDFBF7] px-2.5 py-0.5 rounded-full text-[10px] font-bold">
-          Brewing in Kitchen
+          Preparing
         </span>
       );
     }
@@ -106,45 +117,43 @@ export const StaffDashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] text-[#2B231F] pb-16">
-      {/* Clean Staff Top Header - No Livewire or WebSocket banners */}
-      <header className="bg-[#F4EFEB] border-b border-[#E6DDD4] px-4 sm:px-8 py-4 sticky top-0 z-30 shadow-2xs">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-[#5C4033] text-[#FDFBF7] flex items-center justify-center shadow-xs shrink-0">
-              <ChefHat className="w-6 h-6 text-[#FDFBF7]" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="font-display text-xl font-bold text-[#2B231F]">Barista Staff Portal</h1>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-mono font-bold border border-amber-300">
-                  Kitchen Display System
-                </span>
-              </div>
-              <p className="text-xs text-[#8C7A6B]">
-                Order fulfillment, mandatory payment verification, and kitchen preparation queue.
-              </p>
+      {/* Sticky Responsive Header with Café Pepita Logo, Low Stock Alert, & Minimalist Logout */}
+      <Header
+        title="Kitchen Display System"
+        subtitle="Staff & Barista Terminal · Mandatory Order Verification Queue"
+      />
+
+      {/* Staff Secondary Action Bar */}
+      <div className="bg-[#F4EFEB]/80 border-b border-[#E6DDD4] px-4 sm:px-8 py-3">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 font-mono font-bold border border-amber-300">
+              role:staff · KDS Terminal
+            </span>
+            <div className="flex items-center gap-1.5 text-xs text-[#5C4033]">
+              <span className="text-[#8C7A6B] text-[11px]">Barista on Duty:</span>
+              <span className="font-bold">{staffSession?.user.name || 'Barista Staff'}</span>
             </div>
           </div>
 
-          {/* Right controls: Quick Search, Sound Toggle, Staff User Info, and Logout */}
-          <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+          <div className="flex items-center gap-2.5 w-full sm:w-auto">
             {/* Quick Search */}
-            <div className="relative flex-1 sm:w-56">
+            <div className="relative flex-1 sm:w-64">
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search token, customer..."
-                className="w-full min-h-[44px] pl-9 pr-4 py-2 bg-white border border-[#E6DDD4] rounded-xl text-xs text-[#2B231F] focus:outline-none focus:ring-2 focus:ring-[#5C4033]"
+                className="w-full min-h-[38px] pl-8 pr-3 py-1.5 bg-white border border-[#E6DDD4] rounded-xl text-xs text-[#2B231F] focus:outline-none focus:ring-2 focus:ring-[#5C4033]"
               />
-              <Search className="w-4 h-4 text-[#8C7A6B] absolute left-3 top-3.5" />
+              <Search className="w-3.5 h-3.5 text-[#8C7A6B] absolute left-2.5 top-2.5" />
             </div>
 
             {/* Sound Chime Toggle */}
             <button
               type="button"
               onClick={() => setSoundEnabled(!soundEnabled)}
-              className={`min-h-[44px] px-3 py-2 rounded-xl border transition cursor-pointer flex items-center gap-1 text-xs font-semibold ${
+              className={`min-h-[38px] px-3 py-1.5 rounded-xl border transition cursor-pointer flex items-center gap-1.5 text-xs font-semibold shrink-0 ${
                 soundEnabled
                   ? 'bg-amber-50 border-amber-300 text-amber-900'
                   : 'bg-white border-[#E6DDD4] text-stone-500 hover:bg-stone-100'
@@ -153,30 +162,11 @@ export const StaffDashboard: React.FC = () => {
               aria-label="Toggle chime sound"
             >
               {soundEnabled ? <Volume2 className="w-4 h-4 text-amber-700" /> : <VolumeX className="w-4 h-4 text-stone-500" />}
-              <span className="hidden sm:inline">{soundEnabled ? 'Sound' : 'Muted'}</span>
+              <span className="hidden sm:inline">{soundEnabled ? 'Sound On' : 'Muted'}</span>
             </button>
-
-            {/* Staff User & Logout */}
-            <div className="flex items-center gap-2">
-              <div className="hidden lg:flex items-center gap-1.5 px-3 py-2 bg-white border border-[#E6DDD4] rounded-xl text-xs text-[#5C4033]">
-                <User className="w-3.5 h-3.5 text-[#8C7A6B]" />
-                <span className="font-semibold">{staffSession?.user.name || 'Barista Staff'}</span>
-              </div>
-
-              <button
-                type="button"
-                id="staff-logout-btn"
-                onClick={() => logoutUnified()}
-                className="min-h-[44px] px-3.5 py-2 bg-white hover:bg-rose-50 text-stone-700 hover:text-rose-700 border border-[#E6DDD4] hover:border-rose-300 font-bold rounded-xl text-xs flex items-center gap-2 transition-colors cursor-pointer shadow-2xs"
-                title="Log out of Staff Portal"
-              >
-                <LogOut className="w-4 h-4 text-stone-500 hover:text-rose-600" />
-                <span>Logout</span>
-              </button>
-            </div>
           </div>
         </div>
-      </header>
+      </div>
 
       {/* Main Content Area */}
       <main className="max-w-7xl mx-auto px-4 sm:px-8 pt-6">
@@ -189,7 +179,7 @@ export const StaffDashboard: React.FC = () => {
               count: unverifiedPaymentCount > 0 ? unverifiedPaymentCount : undefined,
               countLabel: 'unverified',
             },
-            { id: 'preparing', label: 'In Kitchen (Brewing)' },
+            { id: 'preparing', label: 'Preparing' },
             { id: 'ready', label: 'Ready for Claim' },
             { id: 'completed', label: 'Completed' },
             { id: 'all', label: 'All Orders' },

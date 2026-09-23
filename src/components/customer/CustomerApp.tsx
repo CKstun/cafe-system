@@ -9,10 +9,25 @@ import { ScreenDeliveryDetails } from './ScreenDeliveryDetails';
 import { Screen7PaymentModal } from './Screen7PaymentModal';
 import { Screen8LiveTracker } from './Screen8LiveTracker';
 import { MenuItem } from '../../types/cafe';
+import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard';
 
 export const CustomerApp: React.FC = () => {
-  const { customerScreen, setCustomerScreen } = useCafe();
+  const { customerScreen, setCustomerScreen, cart } = useCafe();
   const [selectedMenuItem, setSelectedMenuItem] = useState<MenuItem | null>(null);
+
+  // Safeguard: Customer with unsubmitted cart items
+  useUnsavedChangesGuard({
+    when: cart.length > 0 && customerScreen !== 8,
+    role: 'customer',
+    reason: `You have ${cart.length} unsubmitted item${cart.length > 1 ? 's' : ''} in your cart`,
+  });
+
+  // Safeguard: Customer currently customizing an item
+  useUnsavedChangesGuard({
+    when: selectedMenuItem !== null || customerScreen === 4 || customerScreen === 5,
+    role: 'customer',
+    reason: 'Active beverage customization in progress',
+  });
 
   const renderScreen = () => {
     switch (customerScreen) {

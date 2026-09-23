@@ -1,20 +1,24 @@
-import { MenuItem, AddOn, InventoryUnit, InventoryItem, VariantRecipeRule } from '../types/cafe';
+import { MenuItem, AddOn, InventoryUnit, InventoryItem, VariantRecipeRule, Category } from '../types/cafe';
+
+export const INITIAL_CATEGORIES_OBJ: Category[] = [
+  { id: 1, name: 'All-day Breakfast', sequence_order: 1, description: 'Hearty Filipino silog breakfast classics' },
+  { id: 2, name: 'Americano Series', sequence_order: 2, description: 'Bold and smooth espresso with pure water' },
+  { id: 3, name: 'Classic Blend', sequence_order: 3, description: 'Timeless espresso favorites & milk foam' },
+  { id: 4, name: 'Signature Blend', sequence_order: 4, description: 'Pepita signature handcrafted coffee specials' },
+  { id: 5, name: 'Hot Blend', sequence_order: 5, description: 'Steamy and comforting hot brews' },
+  { id: 6, name: 'Frappe', sequence_order: 6, description: 'Blended icy coffee & creamy decadent frappes' },
+  { id: 7, name: 'Non-Espresso', sequence_order: 7, description: 'Matcha, chocolate, and milk-based favorites' },
+  { id: 8, name: 'Refreshers', sequence_order: 8, description: 'Fruity sodas, iced teas, and cool spritzers' },
+  { id: 9, name: 'Sandwich & Burger', sequence_order: 9, description: 'Toasted gourmet sandwiches and burgers' },
+  { id: 10, name: 'Pasta', sequence_order: 10, description: 'Rich creamy carbonara and savory sauces' },
+  { id: 11, name: 'Rice Meals', sequence_order: 11, description: 'Filling savory mains served with warm rice' },
+  { id: 12, name: 'Snacks & Appetizers', sequence_order: 12, description: 'Crispy fries, nachos, and finger foods' },
+  { id: 13, name: 'Party Trays', sequence_order: 13, description: 'Large sharing platters for events & gatherings' },
+];
 
 export const INITIAL_CATEGORIES = [
   'All',
-  'All-day Breakfast',
-  'Americano Series',
-  'Classic Blend',
-  'Signature Blend',
-  'Hot Blend',
-  'Frappe',
-  'Non-Espresso',
-  'Refreshers',
-  'Sandwich & Burger',
-  'Pasta',
-  'Rice Meals',
-  'Snacks & Appetizers',
-  'Party Trays',
+  ...INITIAL_CATEGORIES_OBJ.map((c) => c.name),
 ];
 
 export const INITIAL_ADDONS: AddOn[] = [

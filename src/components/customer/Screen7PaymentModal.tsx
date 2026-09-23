@@ -3,6 +3,7 @@ import { useCafe } from '../../context/CafeContext';
 import { ChevronLeft, Banknote, QrCode, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { PaymentMethod } from '../../types/cafe';
 import { PaymentGCash } from './PaymentGCash';
+import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard';
 
 export const Screen7PaymentModal: React.FC = () => {
   const { cart, placeOrder, setCustomerScreen, customerName, orderType, navigate } = useCafe();
@@ -12,6 +13,13 @@ export const Screen7PaymentModal: React.FC = () => {
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+
+  // Safeguard: Customer with active payment verification or uploaded proof
+  useUnsavedChangesGuard({
+    when: cart.length > 0 || isProcessing || Boolean(receiptPreview),
+    role: 'customer',
+    reason: 'Payment submission in progress',
+  });
 
   const subtotal = cart.reduce((acc, curr) => acc + curr.price * curr.quantity, 0);
 

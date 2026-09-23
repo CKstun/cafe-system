@@ -88,6 +88,14 @@ export interface Table {
   capacity?: number;
 }
 
+export interface Category {
+  id: number;
+  name: string;
+  sequence_order: number;
+  description?: string;
+  is_active?: boolean;
+}
+
 export interface MenuItem {
   id: number;
   category: string;

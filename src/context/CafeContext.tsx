@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   MenuItem,
   AddOn,
@@ -9,6 +9,7 @@ import {
   InventoryUnit,
   InventoryItem,
   VariantRecipeRule,
+  Category,
   User,
   PaymentMethod,
   OrderStatus,
@@ -25,6 +26,7 @@ import {
   INITIAL_ADDONS,
   INITIAL_BOTTLENECK_UNITS,
   INITIAL_CATEGORIES,
+  INITIAL_CATEGORIES_OBJ,
   INITIAL_INVENTORY_ITEMS,
   INITIAL_RECIPE_RULES,
 } from '../data/defaultMenu';
@@ -212,6 +214,24 @@ interface CafeContextType {
     reason?: string;
   };
 
+  // Categories Management (CRUD & Sequence Ordering)
+  categoriesObj: Category[];
+  addCategory: (category: Omit<Category, 'id'>) => void;
+  updateCategory: (id: number, updates: Partial<Category>) => void;
+  deleteCategory: (id: number) => void;
+  reorderCategories: (orderedCategoryIds: number[]) => void;
+
+  // Unsaved Changes Guard System
+  hasUnsavedChanges: boolean;
+  unsavedGuards: Record<string, { role: 'customer' | 'staff' | 'admin'; reason: string }>;
+  registerUnsavedGuard: (guardId: string, role: 'customer' | 'staff' | 'admin', reason: string) => void;
+  unregisterUnsavedGuard: (guardId: string) => void;
+  confirmLeaveGuard: () => boolean;
+
+  // Low Stock Alerts for Responsive Header
+  lowStockItemsCount: number;
+  lowStockAlerts: { id: string | number; name: string; current: number; threshold: number; unit?: string }[];
+
   // Global Utils
   resetToSeederData: () => void;
 }
@@ -254,27 +274,53 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [authRedirectNotice, setAuthRedirectNotice] = useState<string | null>(null);
 
-  // Navigate helper with HTML5 History API
-  const navigate = (path: string) => {
-    if (typeof window !== 'undefined') {
-      try {
-        window.history.pushState({}, '', path);
-      } catch (e) {
-        // Fallback in case iframe sandbox restricts pushState
-        console.warn('Router pushState warning:', e);
-      }
-    }
-    setCurrentPath(path);
-  };
+  // Unsaved Changes Guard state ref initialized early for router guards
+  const hasUnsavedChangesRef = useRef<boolean>(false);
 
-  // Browser back/forward button popstate listener
+  // Navigate helper with HTML5 History API & Unsaved Safeguard Interceptor
+  const navigate = useCallback(
+    (path: string, options?: { force?: boolean }): boolean => {
+      if (!options?.force && hasUnsavedChangesRef.current) {
+        const confirmed = window.confirm(
+          'You have unsaved changes or active actions in progress. Are you sure you want to leave?'
+        );
+        if (!confirmed) {
+          return false;
+        }
+      }
+
+      if (typeof window !== 'undefined') {
+        try {
+          window.history.pushState({}, '', path);
+        } catch (e) {
+          console.warn('Router pushState warning:', e);
+        }
+      }
+      setCurrentPath(path);
+      return true;
+    },
+    []
+  );
+
+  // Browser back/forward button popstate listener with safeguard interceptor
   useEffect(() => {
     const handlePopState = () => {
+      if (hasUnsavedChangesRef.current) {
+        const confirmed = window.confirm(
+          'You have unsaved changes or active actions in progress. Are you sure you want to leave?'
+        );
+        if (!confirmed) {
+          try {
+            window.history.pushState(null, '', currentPath);
+          } catch {}
+          return;
+        }
+      }
       setCurrentPath(window.location.pathname || '/');
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
+  }, [currentPath]);
 
   // Route Synchronization Engine
   useEffect(() => {
@@ -695,7 +741,26 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return RAW_MENU_ITEMS;
   });
 
-  const [categories] = useState<string[]>(INITIAL_CATEGORIES);
+  const [categoriesObj, setCategoriesObj] = useState<Category[]>(() => {
+    const saved = localStorage.getItem('cp_categories_v2');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {}
+    }
+    return INITIAL_CATEGORIES_OBJ;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('cp_categories_v2', JSON.stringify(categoriesObj));
+    } catch {}
+  }, [categoriesObj]);
+
+  const categories = useMemo(() => {
+    const sorted = [...categoriesObj].sort((a, b) => (a.sequence_order || 0) - (b.sequence_order || 0));
+    return ['All', ...sorted.map((c) => c.name)];
+  }, [categoriesObj]);
 
   const [addOns, setAddOns] = useState<AddOn[]>(() => {
     const saved = localStorage.getItem('cp_addons_v3');
@@ -952,6 +1017,160 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     localStorage.setItem('cp_inv_logs', JSON.stringify(inventoryLogs));
   }, [inventoryLogs]);
+
+  // Category Management Methods (CRUD & Sequence Ordering)
+  const addCategory = (category: Omit<Category, 'id'>) => {
+    const newCategory: Category = {
+      ...category,
+      id: Date.now(),
+      sequence_order: category.sequence_order ?? categoriesObj.length + 1,
+      is_active: category.is_active ?? true,
+    };
+    setCategoriesObj((prev) => [...prev, newCategory]);
+  };
+
+  const updateCategory = (id: number, updates: Partial<Category>) => {
+    setCategoriesObj((prev) =>
+      prev.map((cat) => {
+        if (cat.id === id) {
+          const oldName = cat.name;
+          const updated = { ...cat, ...updates };
+          if (updates.name && updates.name !== oldName) {
+            setMenuItems((prevMenu) =>
+              prevMenu.map((m) => (m.category === oldName ? { ...m, category: updates.name! } : m))
+            );
+          }
+          return updated;
+        }
+        return cat;
+      })
+    );
+  };
+
+  const deleteCategory = (id: number) => {
+    setCategoriesObj((prev) => prev.filter((c) => c.id !== id));
+  };
+
+  const reorderCategories = (orderedCategoryIds: number[]) => {
+    setCategoriesObj((prev) => {
+      const map = new Map(prev.map((c) => [c.id, c]));
+      const result: Category[] = [];
+      orderedCategoryIds.forEach((id, idx) => {
+        const item = map.get(id);
+        if (item) {
+          result.push({ ...item, sequence_order: idx + 1 });
+          map.delete(id);
+        }
+      });
+      map.forEach((item) => {
+        result.push({ ...item, sequence_order: result.length + 1 });
+      });
+      return result;
+    });
+  };
+
+  // Low Stock Alert Computations
+  const lowStockBottlenecks = useMemo(() => {
+    return bottlenecks
+      .filter((b) => b.current_stock <= b.minimum_threshold)
+      .map((b) => ({
+        id: b.id,
+        name: b.name,
+        current: b.current_stock,
+        threshold: b.minimum_threshold,
+        unit: b.unit,
+      }));
+  }, [bottlenecks]);
+
+  const lowStockInventory = useMemo(() => {
+    return inventoryItems
+      .filter((i) => i.stock_quantity <= i.low_stock_threshold)
+      .map((i) => ({
+        id: String(i.id),
+        name: i.name,
+        current: i.stock_quantity,
+        threshold: i.low_stock_threshold,
+        unit: i.unit,
+      }));
+  }, [inventoryItems]);
+
+  const lowStockAlerts = useMemo(() => {
+    return [...lowStockBottlenecks, ...lowStockInventory];
+  }, [lowStockBottlenecks, lowStockInventory]);
+
+  const lowStockItemsCount = lowStockAlerts.length;
+
+  // Unsaved Changes Guard Registry & Role Evaluation
+  const [unsavedGuards, setUnsavedGuards] = useState<
+    Record<string, { role: 'customer' | 'staff' | 'admin'; reason: string }>
+  >({});
+
+  const registerUnsavedGuard = useCallback(
+    (guardId: string, role: 'customer' | 'staff' | 'admin', reason: string) => {
+      setUnsavedGuards((prev) => ({
+        ...prev,
+        [guardId]: { role, reason },
+      }));
+    },
+    []
+  );
+
+  const unregisterUnsavedGuard = useCallback((guardId: string) => {
+    setUnsavedGuards((prev) => {
+      const next = { ...prev };
+      delete next[guardId];
+      return next;
+    });
+  }, []);
+
+  const hasUnsavedChanges = useMemo(() => {
+    // 1. Explicit registered guards (e.g. active modal customizations, staff inline reviews, admin editors)
+    if (Object.keys(unsavedGuards).length > 0) return true;
+
+    // 2. Customer: Unsubmitted items in cart
+    if (cart && cart.length > 0) return true;
+
+    // 3. Customer: Active order payment pending verification or active tracking
+    if (activeTrackingToken) {
+      const activeOrder = orders.find(
+        (o) =>
+          o.tracking_token === activeTrackingToken &&
+          o.order_status !== 'completed' &&
+          o.order_status !== 'cancelled' &&
+          (o.order_status as string) !== 'picked_up'
+      );
+      if (activeOrder) return true;
+    }
+
+    return false;
+  }, [unsavedGuards, cart, activeTrackingToken, orders]);
+
+  // Synchronize ref for router navigate and popstate
+  useEffect(() => {
+    hasUnsavedChangesRef.current = hasUnsavedChanges;
+  }, [hasUnsavedChanges]);
+
+  const confirmLeaveGuard = useCallback((): boolean => {
+    if (!hasUnsavedChanges) return true;
+    return window.confirm(
+      'You have unsaved changes or active actions in progress. Are you sure you want to leave?'
+    );
+  }, [hasUnsavedChanges]);
+
+  // Global Browser Unload Safeguard (F5, Tab close, window close)
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!hasUnsavedChanges) return;
+      const msg =
+        'You have unsaved changes or active actions in progress. Are you sure you want to leave?';
+      event.preventDefault();
+      event.returnValue = msg;
+      return msg;
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
 
   // Customer Methods
   const setCustomerDetails = (name: string, type: OrderType, tableId: number | null) => {
@@ -1802,6 +2021,18 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
         deleteRecipeRule,
         checkVariantAvailability,
         checkItemOverallAvailability,
+        categoriesObj,
+        addCategory,
+        updateCategory,
+        deleteCategory,
+        reorderCategories,
+        hasUnsavedChanges,
+        unsavedGuards,
+        registerUnsavedGuard,
+        unregisterUnsavedGuard,
+        confirmLeaveGuard,
+        lowStockItemsCount,
+        lowStockAlerts,
         resetToSeederData,
       }}
     >
