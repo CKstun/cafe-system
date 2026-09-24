@@ -12,6 +12,7 @@ import {
   CheckCircle,
   XCircle,
   TrendingUp,
+  Users,
 } from 'lucide-react';
 
 export const DevRouteSwitcher: React.FC = () => {
@@ -209,6 +210,72 @@ export const DevRouteSwitcher: React.FC = () => {
               <span className="flex items-center gap-2">
                 <TrendingUp className="w-3.5 h-3.5 text-rose-400 shrink-0" />
                 <span>/admin/reports</span>
+              </span>
+              {isAdminAuthed ? (
+                <span className="text-[10px] text-emerald-400">Authed</span>
+              ) : (
+                <span className="text-[10px] text-stone-500">Guard</span>
+              )}
+            </button>
+            <button
+              id="dev-nav-admin-staff"
+              onClick={() => {
+                navigate('/admin/staff');
+                setIsOpen(false);
+              }}
+              className={`w-full min-h-[36px] flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition-colors ${
+                currentPath === '/admin/staff'
+                  ? 'bg-rose-500/20 text-rose-300 font-medium'
+                  : 'hover:bg-stone-800 text-stone-300'
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <Users className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                <span>/admin/staff</span>
+              </span>
+              {isAdminAuthed ? (
+                <span className="text-[10px] text-emerald-400">Authed</span>
+              ) : (
+                <span className="text-[10px] text-stone-500">Guard</span>
+              )}
+            </button>
+            <button
+              id="dev-nav-admin-inventory"
+              onClick={() => {
+                navigate('/admin/inventory');
+                setIsOpen(false);
+              }}
+              className={`w-full min-h-[36px] flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition-colors ${
+                currentPath === '/admin/inventory'
+                  ? 'bg-rose-500/20 text-rose-300 font-medium'
+                  : 'hover:bg-stone-800 text-stone-300'
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <Coffee className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                <span>/admin/inventory</span>
+              </span>
+              {isAdminAuthed ? (
+                <span className="text-[10px] text-emerald-400">Authed</span>
+              ) : (
+                <span className="text-[10px] text-stone-500">Guard</span>
+              )}
+            </button>
+            <button
+              id="dev-nav-admin-recipes"
+              onClick={() => {
+                navigate('/admin/recipes');
+                setIsOpen(false);
+              }}
+              className={`w-full min-h-[36px] flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition-colors ${
+                currentPath === '/admin/recipes'
+                  ? 'bg-rose-500/20 text-rose-300 font-medium'
+                  : 'hover:bg-stone-800 text-stone-300'
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <Coffee className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                <span>/admin/recipes</span>
               </span>
               {isAdminAuthed ? (
                 <span className="text-[10px] text-emerald-400">Authed</span>

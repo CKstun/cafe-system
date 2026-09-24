@@ -164,6 +164,18 @@ export const StaffDashboard: React.FC = () => {
               {soundEnabled ? <Volume2 className="w-4 h-4 text-amber-700" /> : <VolumeX className="w-4 h-4 text-stone-500" />}
               <span className="hidden sm:inline">{soundEnabled ? 'Sound On' : 'Muted'}</span>
             </button>
+
+            {/* Staff Logout Button */}
+            <button
+              type="button"
+              onClick={() => logoutUnified()}
+              className="min-h-[38px] px-3 py-1.5 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 transition cursor-pointer flex items-center gap-1.5 text-xs font-semibold shrink-0"
+              title="Logout Staff Session"
+              aria-label="Logout Staff"
+            >
+              <LogOut className="w-4 h-4 text-red-600" />
+              <span className="hidden sm:inline">Logout</span>
+            </button>
           </div>
         </div>
       </div>

@@ -206,10 +206,10 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({ onOpenRecipe
             </div>
             <div>
               <h2 className="text-xl font-bold text-stone-900 tracking-tight">
-                Raw Inventory & Supply Management
+                Raw Inventory Management
               </h2>
               <p className="text-xs text-stone-500 mt-0.5">
-                Manage bottleneck raw items (cups, lids, straws, bags) & link them directly to drink recipes
+                Track global stock levels, log restock entries, manage unit definitions, and monitor low-stock threshold alerts
               </p>
             </div>
           </div>
@@ -220,10 +220,10 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({ onOpenRecipe
             <button
               type="button"
               onClick={() => onOpenRecipeLinker()}
-              className="px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold rounded-2xl flex items-center gap-2 transition"
+              className="px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold rounded-2xl flex items-center gap-2 transition cursor-pointer"
             >
               <Layers className="w-4 h-4 text-[#5C3D2E]" />
-              Recipe / BOM Linker
+              Recipe / BOM Settings
             </button>
           )}
 

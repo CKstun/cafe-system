@@ -1,35 +1,14 @@
 import React from 'react';
 import { CafeLogo } from '../common/CafeLogo';
 import { useCafe } from '../../context/CafeContext';
-import {
-  TrendingUp,
-  Users,
-  Coffee,
-  Layers,
-  Package,
-  UtensilsCrossed,
-  LogOut,
-  X,
-} from 'lucide-react';
+import { LogOut, X } from 'lucide-react';
 
-export interface NavItem {
-  id: string;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  path: string;
-  badge?: number;
-}
-
-interface SidebarProps {
-  items: NavItem[];
-  activeId: string;
-  onSelect: (id: string, path: string) => void;
-  onCloseMobile?: () => void;
-  isMobileDrawer?: boolean;
-}
-
-export const Sidebar: React.FC<SidebarProps> = ({
-  items,
+/**
+ * Admin Left Navigation Sidebar & Mobile Drawer Component
+ * Styled with Café Pepita Palette: #FDFBF7 cream and #4A2E19 coffee brown
+ */
+export const Sidebar = ({
+  items = [],
   activeId,
   onSelect,
   onCloseMobile,
@@ -101,11 +80,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 }`}
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <Icon
-                    className={`w-4 h-4 shrink-0 transition-colors ${
-                      isActive ? 'text-amber-200' : 'text-[#4A2E19]'
-                    }`}
-                  />
+                  {Icon && (
+                    <Icon
+                      className={`w-4 h-4 shrink-0 transition-colors ${
+                        isActive ? 'text-amber-200' : 'text-[#4A2E19]'
+                      }`}
+                    />
+                  )}
                   <span className="truncate">{item.label}</span>
                 </div>
 

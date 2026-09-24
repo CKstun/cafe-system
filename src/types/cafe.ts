@@ -77,6 +77,7 @@ export interface User {
   email: string;
   role: Role;
   password?: string;
+  is_active?: boolean;
   created_at?: string;
   updated_at?: string;
 }

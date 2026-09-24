@@ -25,10 +25,9 @@ import {
   Filter,
 } from 'lucide-react';
 import { User as UserType, MenuItem, Role } from '../../types/cafe';
-import { SpatieRolesTab } from './SpatieRolesTab';
 import { InventoryManager } from './InventoryManager';
-import { RecipeLinker } from './RecipeLinker';
-import { UserManagement } from './UserManagement';
+import { RecipeManager } from './RecipeManager';
+import { StaffManagement } from './StaffManagement';
 import { AdminLayout } from './AdminLayout';
 import { EditMenuItemModal } from './EditMenuItemModal';
 import { MenuCatalogTable } from './MenuCatalogTable';
@@ -60,7 +59,7 @@ export const AdminDashboard: React.FC = () => {
     navigate,
   } = useCafe();
 
-  const [activeTab, setActiveTab] = useState<'analytics' | 'staff' | 'roles' | 'products' | 'categories' | 'inventory' | 'recipes'>(() => {
+  const [activeTab, setActiveTab] = useState<'analytics' | 'staff' | 'products' | 'categories' | 'inventory' | 'recipes'>(() => {
     if (typeof window !== 'undefined') {
       const path = window.location.pathname;
       if (path.includes('recipe')) return 'recipes';
@@ -68,7 +67,6 @@ export const AdminDashboard: React.FC = () => {
       if (path.includes('categories')) return 'categories';
       if (path.includes('products') || path.includes('menu')) return 'products';
       if (path.includes('staff')) return 'staff';
-      if (path.includes('roles')) return 'roles';
       if (path.includes('analytics') || path.includes('reports')) return 'analytics';
     }
     return 'analytics';
@@ -81,7 +79,6 @@ export const AdminDashboard: React.FC = () => {
     else if (currentPath.includes('categories')) setActiveTab('categories');
     else if (currentPath.includes('products') || currentPath.includes('menu')) setActiveTab('products');
     else if (currentPath.includes('staff')) setActiveTab('staff');
-    else if (currentPath.includes('roles')) setActiveTab('roles');
     else if (currentPath.includes('analytics') || currentPath.includes('reports')) setActiveTab('analytics');
   }, [currentPath]);
 
@@ -549,18 +546,13 @@ export const AdminDashboard: React.FC = () => {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 2: USER MANAGEMENT & CREDENTIAL RESETS */}
+        {/* TAB 2: STAFF ACCOUNT MANAGEMENT & SECURITY CONTROLS */}
         {/* ========================================================================= */}
         {activeTab === 'staff' && (
           <div className="mt-6">
-            <UserManagement />
+            <StaffManagement />
           </div>
         )}
-
-        {/* ========================================================================= */}
-        {/* TAB: SPATIE ROLES & PERMISSIONS */}
-        {/* ========================================================================= */}
-        {activeTab === 'roles' && <SpatieRolesTab />}
 
         {/* ========================================================================= */}
         {/* TAB 3: PRODUCT MANAGEMENT */}
@@ -585,21 +577,16 @@ export const AdminDashboard: React.FC = () => {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB: CATEGORY CONTROLS & SEQUENCE ORDERING */}
+        {/* TAB 4: CATEGORY CONTROLS & SEQUENCE ORDERING */}
         {/* ========================================================================= */}
         {activeTab === 'categories' && (
           <div className="mt-6">
-            <CategoryManager
-              onCategorySelected={(cat) => {
-                setActiveTab('products');
-                navigate('/admin/products');
-              }}
-            />
+            <CategoryManager />
           </div>
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 4: RAW INVENTORY MANAGER & BOTTLENECK AUDIT LOGS */}
+        {/* TAB 5: RAW INVENTORY MANAGEMENT & BOTTLENECK AUDIT LOGS */}
         {/* ========================================================================= */}
         {activeTab === 'inventory' && (
           <div className="mt-6 space-y-8">
@@ -679,13 +666,13 @@ export const AdminDashboard: React.FC = () => {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 5: RECIPE / BOM LINKER */}
+        {/* TAB 6: DEDICATED RECIPE / BOM SETTINGS */}
         {/* ========================================================================= */}
         {activeTab === 'recipes' && (
           <div className="mt-6">
-            <RecipeLinker
+            <RecipeManager
               initialMenuItemId={recipeLinkerItemId}
-              onOpenInventory={() => {
+              onNavigateToInventory={() => {
                 setActiveTab('inventory');
                 navigate('/admin/inventory');
               }}

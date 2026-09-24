@@ -1,4 +1,5 @@
 import express from 'express';
+import type { Request, Response } from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
@@ -14,12 +15,12 @@ const distPath = path.resolve(__dirname, 'dist');
 app.use(express.json());
 
 // Health check endpoints for Cloud Run & GCP load balancers
-app.get(['/healthz', '/health', '/_ah/health'], (_req, res) => {
+app.get(['/healthz', '/health', '/_ah/health'], (_req: Request, res: Response) => {
   res.status(200).send('OK');
 });
 
 // API route fallback for report exports if requested
-app.get('/api/admin/reports/export', (req, res) => {
+app.get('/api/admin/reports/export', (req: Request, res: Response) => {
   const startDate = req.query.start_date || '2024-01-01';
   const endDate = req.query.end_date || new Date().toISOString().split('T')[0];
   const csvData = `Date,Order ID,Customer,Items,Total,Status\n${new Date().toISOString().split('T')[0]},ORD-SAMPLE,Walk-in,Spanish Latte (1),160.00,completed\n`;
@@ -29,7 +30,7 @@ app.get('/api/admin/reports/export', (req, res) => {
 });
 
 // Single Transactional Menu Item Update (Details + Variants + BOM Recipes + Stock Adjustments)
-app.put('/api/admin/menu-items/:id', (req, res) => {
+app.put('/api/admin/menu-items/:id', (req: Request, res: Response) => {
   const { id } = req.params;
   const payload = req.body;
 
@@ -45,7 +46,7 @@ app.put('/api/admin/menu-items/:id', (req, res) => {
 });
 
 // Menu Item Deletion (protected by auth/role check in Laravel)
-app.delete('/api/admin/menu-items/:id', (req, res) => {
+app.delete('/api/admin/menu-items/:id', (req: Request, res: Response) => {
   const { id } = req.params;
   res.status(200).json({
     success: true,
@@ -54,8 +55,12 @@ app.delete('/api/admin/menu-items/:id', (req, res) => {
   });
 });
 
+// ==========================================
+// STAFF ACCOUNT MANAGEMENT API (LARAVEL 13 REST API)
+// ==========================================
+
 // Create Account: POST /api/admin/users
-app.post('/api/admin/users', (req, res) => {
+app.post('/api/admin/users', (req: Request, res: Response) => {
   const { name, email, role, password } = req.body;
   if (!name || !email) {
     return res.status(422).json({
@@ -83,7 +88,7 @@ app.post('/api/admin/users', (req, res) => {
 });
 
 // Edit Account & Reset Password: PUT /api/admin/users/:id
-app.put('/api/admin/users/:id', (req, res) => {
+app.put('/api/admin/users/:id', (req: Request, res: Response) => {
   const { id } = req.params;
   const { name, email, role, password } = req.body;
 
@@ -104,10 +109,11 @@ app.put('/api/admin/users/:id', (req, res) => {
 });
 
 // Disable / Enable Account Toggle: PATCH /api/admin/users/:id/toggle-status
-app.patch('/api/admin/users/:id/toggle-status', (req, res) => {
+app.patch('/api/admin/users/:id/toggle-status', (req: Request, res: Response) => {
   const { id } = req.params;
   const { is_active } = req.body;
 
+  // Self-protection guard simulation (admin ID 1)
   const currentAuthId = req.headers['x-auth-user-id'] ? Number(req.headers['x-auth-user-id']) : null;
   if (currentAuthId && currentAuthId === Number(id)) {
     return res.status(403).json({
@@ -126,7 +132,7 @@ app.patch('/api/admin/users/:id/toggle-status', (req, res) => {
 });
 
 // Safe Account Deletion: DELETE /api/admin/users/:id
-app.delete('/api/admin/users/:id', (req, res) => {
+app.delete('/api/admin/users/:id', (req: Request, res: Response) => {
   const { id } = req.params;
 
   const currentAuthId = req.headers['x-auth-user-id'] ? Number(req.headers['x-auth-user-id']) : null;
@@ -145,7 +151,7 @@ app.delete('/api/admin/users/:id', (req, res) => {
 });
 
 // Login Interceptor: POST /api/login
-app.post('/api/login', (req, res) => {
+app.post('/api/login', (req: Request, res: Response) => {
   const { email, password, is_active } = req.body;
 
   if (is_active === false) {
@@ -179,12 +185,12 @@ if (fs.existsSync(distPath) && fs.existsSync(path.join(distPath, 'index.html')))
   app.use(express.static(distPath));
 
   // SPA fallback: return index.html for all non-API navigation requests
-  app.get('*', (_req, res) => {
+  app.get('*', (_req: Request, res: Response) => {
     res.sendFile(path.join(distPath, 'index.html'));
   });
 } else {
   // Graceful fallback that always passes Cloud Run root health checks (HTTP 200)
-  app.get('*', (_req, res) => {
+  app.get('*', (_req: Request, res: Response) => {
     res.status(200).send(`<!DOCTYPE html>
 <html lang="en">
 <head>

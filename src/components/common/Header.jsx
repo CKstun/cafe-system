@@ -1,20 +1,14 @@
 import React, { useState } from 'react';
 import { useCafe } from '../../context/CafeContext';
 import { CafeLogo } from './CafeLogo';
-import {
-  AlertTriangle,
-  Menu,
-} from 'lucide-react';
+import { AlertTriangle, Menu } from 'lucide-react';
 
-export interface HeaderProps {
-  title?: string;
-  subtitle?: string;
-  onHamburgerToggle?: () => void;
-  showLowStockBadge?: boolean;
-  isAdmin?: boolean;
-}
-
-export const Header: React.FC<HeaderProps> = ({
+/**
+ * Sticky Header Component for Admin and Portal Views
+ * Right section strictly displays utility badges (e.g. Low Stock Alert).
+ * Logout button has been completely removed in adherence to minimalist cleanup.
+ */
+export const Header = ({
   title,
   subtitle,
   onHamburgerToggle,
@@ -22,10 +16,10 @@ export const Header: React.FC<HeaderProps> = ({
   isAdmin = true,
 }) => {
   const {
-    currentPath,
+    currentPath = '',
     navigate,
-    lowStockItemsCount,
-    lowStockAlerts,
+    lowStockItemsCount = 0,
+    lowStockAlerts = [],
   } = useCafe();
 
   const [stockPopoverOpen, setStockPopoverOpen] = useState(false);
@@ -49,14 +43,8 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="sticky top-0 z-40 bg-[#FDFBF7] border-b border-[#2C1D11]/10 px-4 py-3 flex items-center justify-between">
-      {/* ========================================================================= */}
-      {/* LEFT SECTION:                                                             */}
-      {/* 1. Hamburger Menu Button (< lg)                                           */}
-      {/* 2. Café Pepita Logo (< lg)                                                */}
-      {/* 3. Active Page Title & Subtitle                                           */}
-      {/* ========================================================================= */}
+      {/* LEFT SECTION: Hamburger (< lg), Logo (< lg), Title & Subtitle */}
       <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-        {/* Hamburger Menu Button (visible on mobile and tablet: block lg:hidden) */}
         {onHamburgerToggle && (
           <button
             type="button"
@@ -69,7 +57,7 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         )}
 
-        {/* Café Pepita Logo (tablet and mobile viewports) */}
+        {/* Café Pepita Logo on smaller screens */}
         <div
           onClick={() => navigate(isAdmin ? '/admin/reports' : '/menu')}
           className="block lg:hidden flex items-center cursor-pointer shrink-0"
@@ -80,7 +68,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Active Page Title */}
+        {/* Active Title */}
         <div className="min-w-0">
           <h1 className="font-display font-bold text-sm sm:text-base md:text-lg text-[#2C1D11] truncate tracking-tight">
             {getHeaderTitle()}
@@ -93,11 +81,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* ========================================================================= */}
-      {/* RIGHT UTILITY SECTION:                                                    */}
-      {/* Display ONLY essential utility badges (e.g., Low Stock Alert icon)         */}
-      {/* Notice: Top sticky header Logout button has been completely removed       */}
-      {/* ========================================================================= */}
+      {/* RIGHT SECTION: Essential utility badges only */}
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
         {showLowStockBadge && (
           <div className="relative">
@@ -124,7 +108,7 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </button>
 
-            {/* Low Stock Alert Dropdown Popover */}
+            {/* Low Stock Dropdown Popover */}
             {stockPopoverOpen && (
               <>
                 <div

@@ -178,9 +178,10 @@ interface CafeContextType {
   handleCancellation: (orderId: number, approve: boolean) => void;
 
   // Admin Actions
-  addStaffUser: (name: string, email: string, role?: Role) => void;
-  updateStaffUser: (id: number, updates: Partial<User>) => void;
-  deleteStaffUser: (id: number) => void;
+  addStaffUser: (name: string, email: string, role?: Role, password?: string) => { success: boolean; user?: User; error?: string };
+  updateStaffUser: (id: number, updates: Partial<User>) => { success: boolean; error?: string };
+  deleteStaffUser: (id: number) => { success: boolean; error?: string };
+  toggleStaffStatus: (id: number) => { success: boolean; message?: string; error?: string };
   addMenuItem: (item: Omit<MenuItem, 'id'>) => void;
   updateMenuItem: (id: number, updates: Partial<MenuItem>) => void;
   deleteMenuItem: (id: number) => void;
@@ -506,6 +507,13 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
       cleanUser === 'marco@cafepita.com' ||
       cleanUser === 'cheska';
 
+    if (matchedUser && matchedUser.is_active === false) {
+      return {
+        success: false,
+        error: 'Your account has been deactivated. Please contact an administrator.',
+      };
+    }
+
     if (!isKnownStaff || cleanPass.length < 4) {
       return {
         success: false,
@@ -570,6 +578,13 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
       cleanUser === 'owner@cafepita.com' ||
       cleanUser === 'admin@cafepita.com' ||
       cleanUser === 'admin';
+
+    if (matchedUser && matchedUser.is_active === false) {
+      return {
+        success: false,
+        error: 'Your account has been deactivated. Please contact an administrator.',
+      };
+    }
 
     if (!isKnownAdmin || cleanPass.length < 4) {
       return {
@@ -830,9 +845,9 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
   ]);
 
   const [staffUsers, setStaffUsers] = useState<User[]>([
-    { id: 1, name: 'Admin Manager', email: 'admin@cafepita.com', role: 'admin', created_at: '2025-01-10' },
-    { id: 2, name: 'Cheska Kimberly (Barista)', email: 'staff@cafepita.com', role: 'staff', created_at: '2025-02-01' },
-    { id: 3, name: 'Marco Santos (Kitchen)', email: 'marco@cafepita.com', role: 'staff', created_at: '2025-02-15' },
+    { id: 1, name: 'Admin Manager', email: 'admin@cafepita.com', role: 'admin', is_active: true, created_at: '2025-01-10' },
+    { id: 2, name: 'Cheska Kimberly (Barista)', email: 'staff@cafepita.com', role: 'staff', is_active: true, created_at: '2025-02-01' },
+    { id: 3, name: 'Marco Santos (Kitchen)', email: 'marco@cafepita.com', role: 'staff', is_active: true, created_at: '2025-02-15' },
   ]);
 
   const [orders, setOrders] = useState<Order[]>(() => {
@@ -1730,24 +1745,162 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
   };
 
-  // Admin Actions
-  const addStaffUser = (name: string, email: string, role: Role = 'staff') => {
+  // Admin Actions: User / Staff Management
+  const addStaffUser = (
+    name: string,
+    email: string,
+    role: Role = 'staff',
+    password?: string
+  ): { success: boolean; user?: User; error?: string } => {
+    const trimmedEmail = email.trim().toLowerCase();
+    const existing = staffUsers.find((u) => u.email.toLowerCase() === trimmedEmail);
+    if (existing) {
+      return { success: false, error: 'A user with this email address already exists.' };
+    }
+
     const newUser: User = {
       id: Date.now(),
-      name,
-      email,
+      name: name.trim(),
+      email: trimmedEmail,
       role,
+      is_active: true,
+      password: password || 'pepita123',
       created_at: new Date().toISOString().split('T')[0],
+      updated_at: new Date().toISOString().split('T')[0],
     };
-    setStaffUsers((prev) => [...prev, newUser]);
+
+    setStaffUsers((prev) => [newUser, ...prev]);
+
+    // Async simulated API call: POST /api/admin/users
+    fetch('/api/admin/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newUser),
+    }).catch(() => {});
+
+    return { success: true, user: newUser };
   };
 
-  const updateStaffUser = (id: number, updates: Partial<User>) => {
-    setStaffUsers((prev) => prev.map((u) => (u.id === id ? { ...u, ...updates } : u)));
+  const updateStaffUser = (
+    id: number,
+    updates: Partial<User>
+  ): { success: boolean; error?: string } => {
+    // Protection guard: check email uniqueness if email is changed
+    if (updates.email) {
+      const emailLower = updates.email.trim().toLowerCase();
+      const existing = staffUsers.find((u) => u.id !== id && u.email.toLowerCase() === emailLower);
+      if (existing) {
+        return { success: false, error: 'This email is already taken by another account.' };
+      }
+    }
+
+    setStaffUsers((prev) =>
+      prev.map((u) => {
+        if (u.id === id) {
+          const merged = {
+            ...u,
+            ...updates,
+            updated_at: new Date().toISOString(),
+          };
+          return merged;
+        }
+        return u;
+      })
+    );
+
+    // Option to Revoke Sessions on Password Reset:
+    // When password field is populated, invalidate active Sanctum tokens
+    if (updates.password) {
+      if (staffSession && staffSession.user.id === id) {
+        localStorage.removeItem('cp_staff_session');
+        setStaffSession(null);
+      }
+    }
+
+    // Async simulated API call: PUT /api/admin/users/{id}
+    fetch(`/api/admin/users/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    }).catch(() => {});
+
+    return { success: true };
   };
 
-  const deleteStaffUser = (id: number) => {
+  const toggleStaffStatus = (
+    id: number
+  ): { success: boolean; message?: string; error?: string } => {
+    // Protection & Self-Deletion/Deactivation Guard:
+    // Prevent Admins from disabling their own currently logged-in account
+    if (adminSession && adminSession.user.id === id) {
+      return {
+        success: false,
+        error: 'Security Guard: You cannot deactivate your own currently active administrator account.',
+      };
+    }
+
+    const targetUser = staffUsers.find((u) => u.id === id);
+    if (!targetUser) {
+      return { success: false, error: 'Account not found.' };
+    }
+
+    const nextStatus = targetUser.is_active === false ? true : false;
+
+    setStaffUsers((prev) =>
+      prev.map((u) => (u.id === id ? { ...u, is_active: nextStatus, updated_at: new Date().toISOString() } : u))
+    );
+
+    // Revoke Active Tokens: When account is set to disabled (is_active = false),
+    // immediately revoke and delete all active Sanctum tokens so user is logged out
+    if (!nextStatus) {
+      if (staffSession && staffSession.user.id === id) {
+        localStorage.removeItem('cp_staff_session');
+        setStaffSession(null);
+      }
+    }
+
+    // Async simulated API call: PATCH /api/admin/users/{id}/toggle-status
+    fetch(`/api/admin/users/${id}/toggle-status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_active: nextStatus }),
+    }).catch(() => {});
+
+    return {
+      success: true,
+      message: `Account for ${targetUser.name} has been ${nextStatus ? 'reactivated' : 'deactivated'} successfully.`,
+    };
+  };
+
+  const deleteStaffUser = (id: number): { success: boolean; error?: string } => {
+    // Protection & Self-Deletion Guard:
+    // Prevent Admins from deleting their own currently logged-in account
+    if (adminSession && adminSession.user.id === id) {
+      return {
+        success: false,
+        error: 'Security Guard: You cannot delete your own currently active administrator account.',
+      };
+    }
+
+    const target = staffUsers.find((u) => u.id === id);
+    if (!target) {
+      return { success: false, error: 'Account not found.' };
+    }
+
     setStaffUsers((prev) => prev.filter((u) => u.id !== id));
+
+    // Invalidate active session if deleted user was logged in
+    if (staffSession && staffSession.user.id === id) {
+      localStorage.removeItem('cp_staff_session');
+      setStaffSession(null);
+    }
+
+    // Async simulated API call: DELETE /api/admin/users/{id}
+    fetch(`/api/admin/users/${id}`, {
+      method: 'DELETE',
+    }).catch(() => {});
+
+    return { success: true };
   };
 
   // POST /api/admin/users/{id}/reset-password
@@ -1795,6 +1948,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteMenuItem = (id: number) => {
     setMenuItems((prev) => prev.filter((m) => m.id !== id));
+    setRecipeRules((prev) => prev.filter((r) => r.menu_item_id !== id));
   };
 
   const toggleMenuItemAvailability = (id: number) => {
@@ -2005,6 +2159,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addStaffUser,
         updateStaffUser,
         deleteStaffUser,
+        toggleStaffStatus,
         addMenuItem,
         updateMenuItem,
         deleteMenuItem,

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Sidebar, NavItem } from './Sidebar';
+import { Sidebar } from './Sidebar';
 import { Header } from '../common/Header';
 import { useCafe } from '../../context/CafeContext';
 import {
@@ -11,20 +11,18 @@ import {
   UtensilsCrossed,
 } from 'lucide-react';
 
-export interface AdminLayoutProps {
-  children: React.ReactNode;
-  activeTab: string;
-  onTabChange: (tabId: string, path: string) => void;
-  pageTitle?: string;
-}
-
-export const AdminLayout: React.FC<AdminLayoutProps> = ({
+/**
+ * Admin Shell Layout Component
+ * Integrates Left Sidebar, Responsive Mobile Drawer, and Sticky Header
+ * Palette: #FDFBF7 cream and #4A2E19 coffee brown
+ */
+export const AdminLayout = ({
   children,
   activeTab,
   onTabChange,
   pageTitle,
 }) => {
-  const { inventoryItems, lowStockItemsCount } = useCafe();
+  const { inventoryItems = [], lowStockItemsCount = 0 } = useCafe();
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
   // Compute live low stock count for raw inventory badge
@@ -36,7 +34,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
   // Distinct Admin Left Sidebar navigation items
   // Note: 'Roles & Permissions' is completely stripped out
   // 'Recipe / BOM Settings' is a dedicated standalone route & tab
-  const navItems: NavItem[] = useMemo(() => [
+  const navItems = useMemo(() => [
     {
       id: 'analytics',
       label: 'Sales Reports & Analytics',
@@ -85,17 +83,14 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
     return current ? current.label : 'Sales Reports & Analytics';
   }, [pageTitle, activeTab, navItems]);
 
-  const handleSelectNav = (id: string, path: string) => {
+  const handleSelectNav = (id, path) => {
     onTabChange(id, path);
     setMobileDrawerOpen(false);
   };
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] text-[#2B231F] flex flex-col font-sans selection:bg-[#4A2E19] selection:text-[#FDFBF7]">
-      {/* ========================================================================= */}
-      {/* DESKTOP LEFT SIDEBAR (SCREEN SIZES >= 1024px / lg:flex)                    */}
-      {/* Fixed left-side navigation sidebar: lg:w-64 min-h-screen bg-[#FDFBF7]     */}
-      {/* ========================================================================= */}
+      {/* Desktop Left Sidebar (>= 1024px) */}
       <aside className="lg:w-64 min-h-screen bg-[#FDFBF7] border-r border-[#2C1D11]/10 hidden lg:flex lg:flex-col fixed top-0 left-0 bottom-0 z-30 shadow-2xs">
         <Sidebar
           items={navItems}
@@ -104,20 +99,14 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         />
       </aside>
 
-      {/* ========================================================================= */}
-      {/* TABLET & MOBILE SLIDE-OUT DRAWER (< 1024px / < lg)                        */}
-      {/* Slide-out sidebar overlay opened via Header hamburger button              */}
-      {/* ========================================================================= */}
+      {/* Tablet & Mobile Slide-out Drawer (< 1024px) */}
       {mobileDrawerOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
-          {/* Backdrop */}
           <div
             className="fixed inset-0 bg-stone-900/50 backdrop-blur-xs transition-opacity duration-200"
             onClick={() => setMobileDrawerOpen(false)}
             aria-label="Close navigation overlay"
           />
-
-          {/* Slide-out Sidebar Drawer */}
           <div className="relative w-72 max-w-[85vw] bg-[#FDFBF7] h-full shadow-2xl flex flex-col z-50 animate-in slide-in-from-left duration-200 border-r border-[#2C1D11]/10">
             <Sidebar
               items={navItems}
@@ -130,11 +119,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* MAIN CONTENT AREA (Offset lg:ml-64 on desktop, full width on mobile)      */}
-      {/* ========================================================================= */}
+      {/* Main Content Area */}
       <div className="lg:ml-64 w-full lg:w-[calc(100%-16rem)] flex-1 flex flex-col min-w-0">
-        {/* Sticky Header with Hamburger (< lg), Cafe Pepita Logo (< lg), Title & Utility Badges */}
         <Header
           title={currentTitle}
           onHamburgerToggle={() => setMobileDrawerOpen(true)}
@@ -142,7 +128,6 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
           isAdmin={true}
         />
 
-        {/* Content Container without Horizontal Scroll */}
         <main className="p-4 sm:p-6 lg:p-6 flex-1 max-w-full overflow-x-hidden">
           {children}
         </main>

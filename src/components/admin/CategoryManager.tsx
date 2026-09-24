@@ -12,13 +12,7 @@ import {
   Check,
 } from 'lucide-react';
 
-interface CategoryManagerProps {
-  onCategorySelected?: (categoryName: string) => void;
-}
-
-export const CategoryManager: React.FC<CategoryManagerProps> = ({
-  onCategorySelected,
-}) => {
+export const CategoryManager: React.FC = () => {
   const {
     categoriesObj,
     addCategory,
@@ -45,7 +39,7 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
       : 'Creating new menu category',
   });
 
-  // Sorted categories
+  // Sorted categories strictly by sequence order
   const sortedCategories = [...categoriesObj].sort(
     (a, b) => (a.sequence_order || 0) - (b.sequence_order || 0)
   );
@@ -73,7 +67,7 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
   const handleCloseModal = () => {
     if (isDirty) {
       const confirm = window.confirm(
-        'You have unsaved changes or active actions in progress. Are you sure you want to leave?'
+        'You have unsaved changes in progress. Are you sure you want to discard them?'
       );
       if (!confirm) return;
     }
@@ -124,7 +118,7 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
     const itemCount = menuItems.filter((m) => m.category === cat.name).length;
     if (itemCount > 0) {
       const confirm = window.confirm(
-        `Warning: Category "${cat.name}" has ${itemCount} associated menu item(s). Deleting it will leave these products uncategorized. Proceed?`
+        `Category "${cat.name}" has ${itemCount} associated menu item(s). Deleting it will leave these items uncategorized. Are you sure you want to proceed?`
       );
       if (!confirm) return;
     } else {
@@ -137,17 +131,17 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Action Header */}
+      {/* Category Header & Creation Control */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white p-5 rounded-3xl border border-[#2C1D11]/10 shadow-xs">
         <div>
           <div className="flex items-center gap-2">
             <Layers className="w-5 h-5 text-[#4A2E19]" />
             <h2 className="font-display text-base sm:text-lg font-bold text-[#2C1D11]">
-              Category Architecture & Menu Ordering
+              Category Controls
             </h2>
           </div>
           <p className="text-xs text-[#2C1D11]/60 mt-0.5">
-            Create, reorganize, and prioritize catalog groupings. The sequence order directly controls the category tabs on the customer menu.
+            Manage category names, sequence positions, descriptions, and removal.
           </p>
         </div>
 
@@ -161,60 +155,52 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
         </button>
       </div>
 
-      {/* Categories Table / List */}
+      {/* Raw Category CRUD Table */}
       <div className="bg-white rounded-3xl border border-[#2C1D11]/10 overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left">
             <thead>
               <tr className="bg-[#F4EFEB] border-b border-[#2C1D11]/10 text-[#4A2E19] uppercase tracking-wider text-[10px]">
-                <th className="py-3 px-4 font-bold text-center w-16">Seq #</th>
-                <th className="py-3 px-4 font-bold">Category Name</th>
-                <th className="py-3 px-4 font-bold">Description</th>
-                <th className="py-3 px-4 font-bold text-right">Actions</th>
+                <th className="py-3.5 px-5 font-bold text-center w-20">Seq #</th>
+                <th className="py-3.5 px-5 font-bold">Category Name</th>
+                <th className="py-3.5 px-5 font-bold">Description</th>
+                <th className="py-3.5 px-5 font-bold text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#2C1D11]/5">
-              {sortedCategories.map((cat, idx) => {
-                return (
-                  <tr
-                    key={cat.id}
-                    className="hover:bg-[#FDFBF7] transition group"
-                  >
-                    {/* Sequence Badge */}
-                    <td className="py-3 px-4 text-center font-mono font-bold text-[#4A2E19]">
-                      <span className="inline-block px-2 py-0.5 rounded-md bg-[#4A2E19]/10 text-[#4A2E19]">
-                        #{idx + 1}
+              {sortedCategories.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="py-8 text-center text-[#2C1D11]/50">
+                    No categories found. Click "New Category" to create one.
+                  </td>
+                </tr>
+              ) : (
+                sortedCategories.map((cat, idx) => (
+                  <tr key={cat.id} className="hover:bg-[#FDFBF7] transition group">
+                    {/* Sequence Rank */}
+                    <td className="py-3.5 px-5 text-center font-mono font-bold text-[#4A2E19]">
+                      <span className="inline-block px-2.5 py-0.5 rounded-lg bg-[#4A2E19]/10 text-[#4A2E19]">
+                        #{cat.sequence_order || idx + 1}
                       </span>
                     </td>
 
-                    {/* Name */}
-                    <td className="py-3 px-4">
-                      <div className="font-bold text-[#2C1D11] flex items-center gap-2">
-                        <span>{cat.name}</span>
-                        {onCategorySelected && (
-                          <button
-                            type="button"
-                            onClick={() => onCategorySelected(cat.name)}
-                            className="text-[10px] text-[#4A2E19] underline hover:opacity-80"
-                          >
-                            Filter
-                          </button>
-                        )}
-                      </div>
+                    {/* Raw Category Name */}
+                    <td className="py-3.5 px-5">
+                      <span className="font-bold text-[#2C1D11]">{cat.name}</span>
                     </td>
 
                     {/* Description */}
-                    <td className="py-3 px-4 text-[#2C1D11]/70 max-w-xs truncate">
+                    <td className="py-3.5 px-5 text-[#2C1D11]/70 max-w-xs truncate">
                       {cat.description || <span className="italic text-[#2C1D11]/40">No description</span>}
                     </td>
 
-                    {/* Action Controls */}
-                    <td className="py-3 px-4 text-right space-x-1">
+                    {/* Action Controls: Edit & Delete */}
+                    <td className="py-3.5 px-5 text-right whitespace-nowrap space-x-1">
                       <button
                         type="button"
                         onClick={() => handleOpenEdit(cat)}
                         className="p-1.5 text-[#4A2E19] hover:bg-[#4A2E19]/10 rounded-lg transition cursor-pointer"
-                        title="Edit Category Details"
+                        title="Edit Category"
                       >
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
@@ -228,8 +214,8 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
                       </button>
                     </td>
                   </tr>
-                );
-              })}
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -310,7 +296,7 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
 
               {errorMessage && (
                 <div className="flex items-center gap-1.5 text-xs text-[#DC2626] bg-red-50 p-2.5 rounded-xl border border-red-200">
-                  <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
                   <span>{errorMessage}</span>
                 </div>
               )}
