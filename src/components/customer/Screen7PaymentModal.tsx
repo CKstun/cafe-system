@@ -1,33 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useCafe } from '../../context/CafeContext';
-import { useGuestSession } from '../../hooks/useGuestSession';
-import { ChevronLeft, Banknote, QrCode, ShieldCheck, CheckCircle2, User, Clock, Sparkles } from 'lucide-react';
+import { ChevronLeft, Banknote, QrCode, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { PaymentMethod } from '../../types/cafe';
 import { PaymentGCash } from './PaymentGCash';
 import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard';
 
 export const Screen7PaymentModal: React.FC = () => {
-  const {
-    cart,
-    placeOrder,
-    setCustomerScreen,
-    setCustomerName: setContextCustomerName,
-    orderType,
-    navigate,
-  } = useCafe();
-
-  const {
-    guestSessionId,
-    customerName: storedGuestName,
-    saveCustomerNameAtCheckout,
-    isSessionActive,
-  } = useGuestSession();
-
-  // Form Pre-filling Behavior:
-  // Pre-fill with stored name if present & 8h session is valid; else start blank and require entry.
-  const [nameInput, setNameInput] = useState<string>(() => {
-    return isSessionActive && storedGuestName ? storedGuestName : '';
-  });
+  const { cart, placeOrder, setCustomerScreen, customerName, orderType, navigate } = useCafe();
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
@@ -35,16 +14,9 @@ export const Screen7PaymentModal: React.FC = () => {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
 
-  // Synchronize with stored guest name on mount if active
-  useEffect(() => {
-    if (isSessionActive && storedGuestName && !nameInput) {
-      setNameInput(storedGuestName);
-    }
-  }, [isSessionActive, storedGuestName]);
-
   // Safeguard: Customer with active payment verification or uploaded proof
   useUnsavedChangesGuard({
-    when: cart.length > 0 || isProcessing || Boolean(receiptPreview) || nameInput.trim().length > 0,
+    when: cart.length > 0 || isProcessing || Boolean(receiptPreview),
     role: 'customer',
     reason: 'Payment submission in progress',
   });
@@ -52,11 +24,9 @@ export const Screen7PaymentModal: React.FC = () => {
   const subtotal = cart.reduce((acc, curr) => acc + curr.price * curr.quantity, 0);
 
   // Validation rules:
-  // 1. Customer Name is required
-  const isNameValid = nameInput.trim().length >= 2;
-  // 2. Cash is always valid; GCash (online) requires mandatory Proof of Payment image upload
+  // Cash is always valid
+  // GCash (online) requires mandatory Proof of Payment image upload
   const isPaymentValid = paymentMethod === 'cash' || (paymentMethod === 'online' && Boolean(receiptPreview));
-  const isFormValid = isNameValid && isPaymentValid && cart.length > 0;
 
   const handleReceiptChange = (file: File | null, previewUrl: string | null) => {
     setReceiptFile(file);
@@ -67,18 +37,12 @@ export const Screen7PaymentModal: React.FC = () => {
   };
 
   const handleConfirmOrder = () => {
-    if (!isNameValid) return;
     if (paymentMethod === 'online' && !receiptPreview) {
       setUploadError('Proof of Payment image upload is mandatory for GCash transactions.');
       return;
     }
 
     setIsProcessing(true);
-
-    const cleanName = nameInput.trim();
-    saveCustomerNameAtCheckout(cleanName);
-    setContextCustomerName(cleanName);
-
     setTimeout(() => {
       // Pass the uploaded receipt preview/dataURL or simulated storage path to placeOrder
       const receiptPath = receiptPreview || undefined;
@@ -122,42 +86,9 @@ export const Screen7PaymentModal: React.FC = () => {
               </strong>
             </p>
           </div>
-        </div>
-
-        {/* Customer Name Pre-filling & Guest Identity Lifecycle */}
-        <div className="mt-4 p-4 bg-white rounded-2xl border border-[#E6DDD4] shadow-2xs space-y-2">
-          <div className="flex items-center justify-between">
-            <label htmlFor="payment-customer-name" className="text-xs font-bold uppercase tracking-wider text-[#5C4033] flex items-center gap-1.5">
-              <User className="w-3.5 h-3.5 text-[#5C4033]" />
-              <span>Customer Name</span>
-              <span className="text-rose-600">*</span>
-            </label>
-
-            {isSessionActive && storedGuestName ? (
-              <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-full">
-                <Sparkles className="w-2.5 h-2.5 text-emerald-600" />
-                <span>Pre-filled from 8h Session</span>
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full">
-                <Clock className="w-2.5 h-2.5 text-amber-600" />
-                <span>Required Entry</span>
-              </span>
-            )}
-          </div>
-
-          <input
-            id="payment-customer-name"
-            type="text"
-            value={nameInput}
-            onChange={(e) => setNameInput(e.target.value)}
-            placeholder="Enter your name (e.g. Mark)"
-            className="w-full px-3.5 py-2.5 bg-[#FAF7F2] border border-[#E6DDD4] rounded-xl text-xs font-bold text-[#2B231F] focus:outline-none focus:ring-2 focus:ring-[#5C4033] focus:bg-white transition"
-            required
-          />
-          <p className="text-[10px] text-[#8C7A6B]">
-            Persisted in <code className="font-mono text-[#5C4033]">cafe_pepita_customer_name</code> for 8 hours across reloads and tab closes.
-          </p>
+          <span className="text-[10px] font-bold px-2.5 py-1 bg-[#EFE8E1] text-[#5C4033] rounded-full">
+            {customerName}
+          </span>
         </div>
 
         {/* Payment Selection Cards */}
@@ -248,16 +179,12 @@ export const Screen7PaymentModal: React.FC = () => {
 
       {/* Action Footer */}
       <div className="pt-6 space-y-2">
-        <div className="flex items-center justify-center gap-1.5 text-[10px] text-[#8C7A6B]">
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
-          <span>Encrypted Order Transmission to Kitchen Display</span>
-        </div>
 
         {/* Unified CTA Button with dynamic disabled styling */}
         <button
           type="button"
           onClick={handleConfirmOrder}
-          disabled={isProcessing || !isFormValid}
+          disabled={isProcessing || !isPaymentValid}
           className="w-full py-3.5 px-6 font-bold rounded-2xl text-sm sm:text-base shadow-md transition flex items-center justify-center gap-2 transform active:scale-98 bg-[#4A2E19] hover:bg-[#382212] text-white cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none"
         >
           {isProcessing ? (
@@ -266,9 +193,7 @@ export const Screen7PaymentModal: React.FC = () => {
             <>
               <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
               <span>
-                {!isNameValid
-                  ? 'Please Enter Customer Name to Continue'
-                  : !isPaymentValid && paymentMethod === 'online'
+                {!isPaymentValid && paymentMethod === 'online'
                   ? 'Upload Proof of Payment to Continue'
                   : `Confirm & Place Order (₱${subtotal.toFixed(2)})`}
               </span>

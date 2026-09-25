@@ -325,20 +325,14 @@ export const Cart: React.FC = () => {
           <div className="space-y-2">
             <button
               type="button"
-              onClick={() => setIsCheckoutOpen(true)}
-              className="w-full py-3.5 px-6 bg-[#5C3D2E] hover:bg-[#4A2F22] active:bg-[#3D261B] text-white font-bold text-sm sm:text-base rounded-2xl shadow-md transition duration-200 flex items-center justify-center gap-2 active:scale-98 cursor-pointer"
+              onClick={handleProceed}
+              className="w-full py-3.5 px-6 bg-[#4A2E19] hover:bg-[#3D2514] active:bg-[#2C190E] text-white font-bold text-sm sm:text-base rounded-2xl shadow-md transition duration-200 flex items-center justify-center gap-2 active:scale-98 cursor-pointer"
             >
-              <span>Instant Guest Checkout</span>
+              <span>Proceed to Checkout</span>
               <ArrowRight className="w-4 h-4 stroke-[2.5]" />
             </button>
-            <button
-              type="button"
-              onClick={handleProceed}
-              className="w-full py-2.5 px-4 bg-[#F4EFEB] hover:bg-[#EADBCE] text-[#5C3D2E] font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
-            >
-              <span>{orderType === 'delivery' ? 'Continue with Delivery Form' : 'Standard Step-by-Step Checkout'}</span>
-            </button>
           </div>
+
         </div>
       )}
 

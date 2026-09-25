@@ -138,9 +138,7 @@ export const PaymentGCash: React.FC<PaymentGCashProps> = ({
           <label className="block text-[11px] font-bold uppercase tracking-wider text-[#5C4033]">
             Upload Proof of Payment <span className="text-red-600">*</span>
           </label>
-          <span className="text-[10px] text-[#8C7A6B]">
-            PNG, JPG, WEBP (Max 5MB)
-          </span>
+          
         </div>
 
         {/* State A: File Uploaded & Preview Available */}
@@ -220,10 +218,7 @@ export const PaymentGCash: React.FC<PaymentGCashProps> = ({
 
             <div>
               <p className="text-xs font-bold text-[#2B231F]">
-                {isDragging ? 'Drop receipt screenshot here' : 'Click or Drag & Drop to Upload'}
-              </p>
-              <p className="text-[11px] text-[#8C7A6B] mt-0.5">
-                Screenshot of your completed GCash payment receipt
+                {isDragging ? 'Drop receipt screenshot here' : 'Upload Here'}
               </p>
             </div>
 
