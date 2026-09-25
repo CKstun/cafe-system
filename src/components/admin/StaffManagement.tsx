@@ -209,6 +209,15 @@ export const StaffManagement: React.FC = () => {
           />
         </div>
 
+        <button
+          type="button"
+          onClick={handleOpenCreateModal}
+          className="px-5 py-2.5 bg-[#4A2E19] hover:bg-[#382212] text-white text-xs font-bold rounded-2xl transition flex items-center gap-2 shadow-xs cursor-pointer shrink-0 self-start sm:self-auto"
+        >
+          <UserPlus className="w-4 h-4" />
+          <span>+ Create Account</span>
+        </button>
+
         {/* Filter Badges 
         <div className="flex items-center gap-2 shrink-0 flex-wrap">
           {/* Role Filter 
@@ -518,14 +527,7 @@ export const StaffManagement: React.FC = () => {
         isDeleting={isDeleting}
       />
 
-      <button
-          type="button"
-          onClick={handleOpenCreateModal}
-          className="px-5 py-2.5 bg-[#4A2E19] hover:bg-[#382212] text-white text-xs font-bold rounded-2xl transition flex items-center gap-2 shadow-xs cursor-pointer shrink-0 self-start sm:self-auto"
-        >
-          <UserPlus className="w-4 h-4" />
-          <span>+ Create Account</span>
-        </button>
+      
     </div>
   );
 };

@@ -155,7 +155,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
     setSaveStatus('idle');
   };
 
-  // Save BOM recipe rules
+  // Save recipe
   const handleSaveRecipe = async () => {
     if (!selectedItem) return;
     setSaveStatus('saving');
@@ -260,7 +260,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
             </div>
             <div>
               <h2 className="text-xl font-bold text-[#2C1D11] tracking-tight">
-                Recipe & Bill of Materials (BOM) Settings
+                Recipe Settings
               </h2>
               <p className="text-xs text-[#4A2E19]/70 mt-0.5">
                 Map raw packaging and ingredients (cups, lids, straws, syrups) to menu product size variants for automated deductions.
@@ -284,7 +284,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
         </div>
       </div>
 
-      {/* Main Two-Column Layout: Left Drink Selection, Right BOM Workbench */}
+      {/* Main Two-Column Layout: Left Drink Selection, Right Recipe Workbench */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* ========================================================================= */}
         {/* LEFT COLUMN: Drink Menu Catalog Picker (4 Cols)                          */}
@@ -380,7 +380,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
                         }`}
                       >
                         <Check className="w-2.5 h-2.5" />
-                        {mappedRulesCount} BOM
+                        {mappedRulesCount} Recipe
                       </span>
                     ) : (
                       <span
@@ -388,7 +388,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
                           isSelected ? 'bg-white/20 text-white' : 'bg-stone-200/80 text-stone-600'
                         }`}
                       >
-                        No BOM
+                        No Recipe
                       </span>
                     )}
                   </div>
@@ -399,7 +399,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
         </div>
 
         {/* ========================================================================= */}
-        {/* RIGHT COLUMN: Recipe BOM Workbench for Selected Drink (8 Cols)            */}
+        {/* RIGHT COLUMN: Recipe Workbench for Selected Drink (8 Cols)            */}
         {/* ========================================================================= */}
         <div className="lg:col-span-8 bg-white rounded-3xl border border-[#2C1D11]/10 p-5 shadow-xs space-y-6">
           {/* Active Drink Info & Variant Size Selector */}
@@ -422,7 +422,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
                 {simulatedAvailability.hasMissingRules ? (
                   <div className="px-3 py-1.5 rounded-xl bg-stone-100 border border-stone-200 text-stone-600 text-xs font-semibold flex items-center gap-1.5">
                     <Info className="w-3.5 h-3.5 text-stone-500" />
-                    <span>No BOM rules mapped for this size</span>
+                    <span>No recipe for this size</span>
                   </div>
                 ) : simulatedAvailability.available ? (
                   <div className="px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-1.5">
@@ -477,7 +477,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
             </div>
           </div>
 
-          {/* BOM Ingredients Mapping Table */}
+          {/* Recipe Ingredients Mapping Table */}
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
@@ -490,7 +490,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
                 </p>
               </div>
 
-              {/* Quick Preset Fillers */}
+              {/* Quick Preset Fillers 
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="text-[10px] text-[#4A2E19]/60 font-medium">Quick Template:</span>
                 <button
@@ -527,7 +527,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
                     Clear
                   </button>
                 )}
-              </div>
+              </div> */}
             </div>
 
             {/* Rows Table */}
@@ -536,7 +536,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
                 <Package className="w-8 h-8 text-[#4A2E19]/40 mx-auto" />
                 <div className="max-w-md mx-auto">
                   <p className="text-xs font-bold text-[#2C1D11]">
-                    No BOM ingredients mapped for {selectedItem?.name} ({selectedSize})
+                    No recipe ingredients mapped for {selectedItem?.name} ({selectedSize})
                   </p>
                   <p className="text-[11px] text-[#8C7A6B] mt-0.5">
                     Orders for this size variant will not deduct packaging or raw supplies until mapped.
@@ -656,7 +656,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
                               type="button"
                               onClick={() => handleRemoveRow(index)}
                               className="p-1.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer"
-                              title="Remove raw ingredient from BOM"
+                              title="Remove raw ingredient from recipe"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -693,12 +693,12 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
                 {saveStatus === 'saved' ? (
                   <>
                     <CheckCircle2 className="w-4 h-4 text-emerald-200" />
-                    <span>BOM Recipe Saved!</span>
+                    <span>Recipe Saved!</span>
                   </>
                 ) : (
                   <>
                     <Save className="w-4 h-4" />
-                    <span>Save BOM Recipe Rules</span>
+                    <span>Save Recipe</span>
                   </>
                 )}
               </button>

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useCafe } from '../../context/CafeContext';
 import {
   ChefHat,
@@ -56,20 +56,6 @@ export const StaffDashboard: React.FC = () => {
   const unverifiedPaymentCount = orders.filter(
     (o) => o.order_status === 'pending'
   ).length;
-
-  // Disambiguation for Same-Name Customers: Count occurrences among active queue orders
-  const duplicateNameCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    orders.forEach((o) => {
-      if (['pending', 'preparing', 'ready'].includes(o.order_status)) {
-        const key = (o.customer_name || '').trim().toLowerCase();
-        if (key) {
-          counts[key] = (counts[key] || 0) + 1;
-        }
-      }
-    });
-    return counts;
-  }, [orders]);
 
   const filteredOrders = orders.filter((order) => {
     // Status filter: 'active' queue includes pending verification, preparing, and ready
@@ -131,28 +117,17 @@ export const StaffDashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] text-[#2B231F] pb-16">
-      {/* Sticky Responsive Header with Café Pepita Logo, Low Stock Alert, & Minimalist Logout */}
       <Header
-        title="Kitchen Display System"
-        subtitle="Staff & Barista Terminal · Mandatory Order Verification Queue"
+        title="Staff Display System"
+        showLowStockBadge={false}
       />
 
       {/* Staff Secondary Action Bar */}
-      <div className="bg-[#F4EFEB]/80 border-b border-[#E6DDD4] px-4 sm:px-8 py-3">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 font-mono font-bold border border-amber-300">
-              role:staff · KDS Terminal
-            </span>
-            <div className="flex items-center gap-1.5 text-xs text-[#5C4033]">
-              <span className="text-[#8C7A6B] text-[11px]">Barista on Duty:</span>
-              <span className="font-bold">{staffSession?.user.name || 'Barista Staff'}</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5 w-full sm:w-auto">
+      <div className="bg-[#F4EFEB]/80 border-b border-[#E6DDD4]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex items-center gap-2.5 w-full">
             {/* Quick Search */}
-            <div className="relative flex-1 sm:w-64">
+            <div className="relative w-full sm:w-64">
               <input
                 type="text"
                 value={searchQuery}
@@ -163,33 +138,36 @@ export const StaffDashboard: React.FC = () => {
               <Search className="w-3.5 h-3.5 text-[#8C7A6B] absolute left-2.5 top-2.5" />
             </div>
 
-            {/* Sound Chime Toggle */}
-            <button
-              type="button"
-              onClick={() => setSoundEnabled(!soundEnabled)}
-              className={`min-h-[38px] px-3 py-1.5 rounded-xl border transition cursor-pointer flex items-center gap-1.5 text-xs font-semibold shrink-0 ${
-                soundEnabled
-                  ? 'bg-amber-50 border-amber-300 text-amber-900'
-                  : 'bg-white border-[#E6DDD4] text-stone-500 hover:bg-stone-100'
-              }`}
-              title={soundEnabled ? 'Chime sound active' : 'Chime sound muted'}
-              aria-label="Toggle chime sound"
-            >
-              {soundEnabled ? <Volume2 className="w-4 h-4 text-amber-700" /> : <VolumeX className="w-4 h-4 text-stone-500" />}
-              <span className="hidden sm:inline">{soundEnabled ? 'Sound On' : 'Muted'}</span>
-            </button>
+            {/* Sound + Logout, pushed right */}
+            <div className="flex items-center gap-2.5 ml-auto">
+              {/* Sound Chime Toggle */}
+              <button
+                type="button"
+                onClick={() => setSoundEnabled(!soundEnabled)}
+                className={`min-h-[38px] px-3 py-1.5 rounded-xl border transition cursor-pointer flex items-center gap-1.5 text-xs font-semibold shrink-0 ${
+                  soundEnabled
+                    ? 'bg-amber-50 border-amber-300 text-amber-900'
+                    : 'bg-white border-[#E6DDD4] text-stone-500 hover:bg-stone-100'
+                }`}
+                title={soundEnabled ? 'Chime sound active' : 'Chime sound muted'}
+                aria-label="Toggle chime sound"
+              >
+                {soundEnabled ? <Volume2 className="w-4 h-4 text-amber-700" /> : <VolumeX className="w-4 h-4 text-stone-500" />}
+                <span className="hidden sm:inline">{soundEnabled ? 'Sound On' : 'Muted'}</span>
+              </button>
 
-            {/* Staff Logout Button */}
-            <button
-              type="button"
-              onClick={() => logoutUnified()}
-              className="min-h-[38px] px-3 py-1.5 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 transition cursor-pointer flex items-center gap-1.5 text-xs font-semibold shrink-0"
-              title="Logout Staff Session"
-              aria-label="Logout Staff"
-            >
-              <LogOut className="w-4 h-4 text-red-600" />
-              <span className="hidden sm:inline">Logout</span>
-            </button>
+              {/* Staff Logout Button */}
+              <button
+                type="button"
+                onClick={() => logoutUnified()}
+                className="min-h-[38px] px-3 py-1.5 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 transition cursor-pointer flex items-center gap-1.5 text-xs font-semibold shrink-0"
+                title="Logout Staff Session"
+                aria-label="Logout Staff"
+              >
+                <LogOut className="w-4 h-4 text-red-600" />
+                <span className="hidden sm:inline">Logout</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -244,10 +222,6 @@ export const StaffDashboard: React.FC = () => {
             const isCash = order.payment_method === 'cash';
             const hasCancelRequest = order.cancellation_requested;
 
-            const orderNum = order.order_number || (order.id % 10000);
-            const isDuplicateName = (duplicateNameCounts[(order.customer_name || '').trim().toLowerCase()] || 0) > 1;
-            const customerOrderLabel = `${order.customer_name} — Order #${orderNum}`;
-
             return (
               <div
                 key={order.id}
@@ -266,10 +240,7 @@ export const StaffDashboard: React.FC = () => {
                   <div className="flex items-center justify-between border-b border-[#F4EFEB] pb-3">
                     <div>
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="font-mono text-xs font-black text-[#5C4033] bg-[#EADBCE]/60 px-2 py-0.5 rounded-md border border-[#E6DDD4]">
-                          Order #{orderNum}
-                        </span>
-                        <span className="font-mono text-xs font-bold text-[#8C7A6B]">
+                        <span className="font-mono text-sm font-extrabold text-[#5C4033]">
                           #{order.tracking_token}
                         </span>
                         {getStatusBadge(order)}
@@ -282,18 +253,12 @@ export const StaffDashboard: React.FC = () => {
                     <div className="text-right">
                       <span className="text-xs font-bold uppercase text-[#5C4033] bg-[#EFE8E1] px-2.5 py-1 rounded-full border border-[#E6DDD4]">
                         {order.order_type === 'dine-in'
-                          ? 'Dine-in (Counter Pickup)'
+                          ? 'Dine-in'
                           : order.order_type === 'delivery'
                           ? 'Delivery'
                           : 'Take-out'}
                       </span>
-                      <p className="text-xs font-bold text-[#2B231F] mt-1">{customerOrderLabel}</p>
-                      {isDuplicateName && (
-                        <div className="mt-1 px-2 py-0.5 bg-amber-100 border border-amber-300 rounded-md text-[10px] font-bold text-amber-900 inline-flex items-center gap-1">
-                          <AlertTriangle className="w-3 h-3 text-amber-700" />
-                          <span>Same-Name Customer · Order #{orderNum}</span>
-                        </div>
-                      )}
+                      <p className="text-xs font-bold text-[#2B231F] mt-1">{order.customer_name}</p>
                       {order.delivery_details && (
                         <p className="text-[10px] text-[#7A6253] mt-0.5 max-w-[200px] truncate text-right">
                           📍 {order.delivery_details.address}
@@ -312,7 +277,7 @@ export const StaffDashboard: React.FC = () => {
                             Order Ready — Call Customer:
                           </span>
                           <span className="text-xs font-extrabold text-[#2B231F]">
-                            "{customerOrderLabel}" (Token #{order.tracking_token})
+                            "{order.customer_name}" (Token #{order.tracking_token})
                           </span>
                         </div>
                       </div>
@@ -375,7 +340,7 @@ export const StaffDashboard: React.FC = () => {
                         </span>
                       </div>
 
-                      {isGCash && (
+                      {/*{isGCash && (
                         <div>
                           <p className="text-[11px] text-stone-700 leading-snug">
                             Customer uploaded a proof of payment screenshot. Inspect the receipt before approving.
@@ -398,7 +363,7 @@ export const StaffDashboard: React.FC = () => {
                         <p className="text-[11px] text-stone-700 leading-snug">
                           Confirm physical cash receipt at the counter or table before approving order for kitchen preparation.
                         </p>
-                      )}
+                      )} */}
 
                       {/* Action Buttons: Verify & Accept Order / Reject Order */}
                       <div className="pt-2 border-t border-amber-200 flex items-center gap-2">
@@ -419,7 +384,7 @@ export const StaffDashboard: React.FC = () => {
                           title="Verify payment and send to kitchen"
                         >
                           <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-                          <span>Verify & Accept Order</span>
+                          <span>Accept Order</span>
                         </button>
                       </div>
                     </div>

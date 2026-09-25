@@ -1,5 +1,6 @@
 import express from 'express';
 import type { Request, Response } from 'express';
+import http from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
@@ -9,7 +10,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const port = parseInt(process.env.PORT || '3000', 10);
 const distPath = path.resolve(__dirname, 'dist');
 
 app.use(express.json());
@@ -208,8 +208,36 @@ if (fs.existsSync(distPath) && fs.existsSync(path.join(distPath, 'index.html')))
   });
 }
 
-app.listen(port, '0.0.0.0', () => {
-  console.log(`[Café Pepita Server] Production server listening on http://0.0.0.0:${port}`);
+const primaryPort = 3000;
+const envPort = process.env.PORT ? parseInt(process.env.PORT, 10) : null;
+
+// Always listen on port 3000 (standard port for AI Studio & Nginx proxy)
+const server3000 = http.createServer(app);
+server3000.on('error', (err: any) => {
+  if (err.code === 'EADDRINUSE') {
+    console.warn(`[Café Pepita Server] Port ${primaryPort} is already bound.`);
+  } else {
+    console.error(`[Café Pepita Server] Port ${primaryPort} error:`, err);
+  }
 });
+server3000.listen(primaryPort, '0.0.0.0', () => {
+  console.log(`[Café Pepita Server] Application server listening on http://0.0.0.0:${primaryPort}`);
+});
+
+// If an external PORT environment variable is specified and differs from 3000 (e.g. 8080 in Cloud Run),
+// also attempt to bind directly to it. If Nginx or another proxy owns that port, gracefully handle EADDRINUSE.
+if (envPort && envPort !== primaryPort) {
+  const envServer = http.createServer(app);
+  envServer.on('error', (err: any) => {
+    if (err.code === 'EADDRINUSE') {
+      console.log(`[Café Pepita Server] Port ${envPort} is managed by reverse proxy (Nginx); proxying to port ${primaryPort}.`);
+    } else {
+      console.error(`[Café Pepita Server] Port ${envPort} error:`, err);
+    }
+  });
+  envServer.listen(envPort, '0.0.0.0', () => {
+    console.log(`[Café Pepita Server] Ingress server also listening on http://0.0.0.0:${envPort}`);
+  });
+}
 
 export default app;
