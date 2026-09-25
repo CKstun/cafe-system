@@ -459,9 +459,6 @@ export const EditMenuItemModal: React.FC<EditMenuItemModalProps> = ({
                 <h3 className="font-display text-base sm:text-lg font-bold text-[#2C1D11] leading-tight">
                   {isEditing ? `Edit Menu Product: ${item?.name}` : 'Create New Menu Product'}
                 </h3>
-                <p className="text-[11px] text-[#4A2E19]/70">
-                  Consolidated Product Details, Size Variants, BOM Recipe Mapping & Raw Restocking
-                </p>
               </div>
             </div>
           </div>
@@ -483,9 +480,9 @@ export const EditMenuItemModal: React.FC<EditMenuItemModalProps> = ({
         <div className="flex items-center gap-1.5 px-5 py-2.5 bg-[#F4EFEB] border-b border-[#2C1D11]/10 overflow-x-auto no-scrollbar">
           {[
             { id: 'details', label: '1. Product Details', icon: Coffee },
-            { id: 'variants', label: '2. Size Variants & Pricing', icon: TrendingUp },
-            { id: 'bom', label: '3. Bill of Materials (BOM)', icon: Layers },
-            { id: 'restock', label: '4. Quick Restock / Overrides', icon: Package, badge: Object.keys(restockDeltas).length },
+            { id: 'variants', label: '2. Sizes & Pricing', icon: TrendingUp },
+            { id: 'bom', label: '3. Recipe', icon: Layers },
+            { id: 'restock', label: '4. Restock', icon: Package, badge: Object.keys(restockDeltas).length },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -534,7 +531,7 @@ export const EditMenuItemModal: React.FC<EditMenuItemModalProps> = ({
                         setName(e.target.value);
                         setIsDirty(true);
                       }}
-                      placeholder="e.g. Spanish Latte, Ube Cold Foam"
+                      placeholder="e.g. Spanish Latte"
                       className="w-full px-3.5 py-2.5 bg-white border border-[#2C1D11]/15 rounded-xl text-xs text-[#2C1D11] focus:outline-none focus:ring-2 focus:ring-[#4A2E19]"
                     />
                   </div>
@@ -581,7 +578,7 @@ export const EditMenuItemModal: React.FC<EditMenuItemModalProps> = ({
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-bold text-[#2C1D11] mb-1">
-                        Direct Stock Quantity
+                        Stock Quantity
                       </label>
                       <input
                         type="number"
@@ -597,7 +594,7 @@ export const EditMenuItemModal: React.FC<EditMenuItemModalProps> = ({
 
                     <div>
                       <label className="block text-xs font-bold text-[#2C1D11] mb-1">
-                        Status / Availability
+                        Availability
                       </label>
                       <button
                         type="button"
@@ -619,7 +616,7 @@ export const EditMenuItemModal: React.FC<EditMenuItemModalProps> = ({
 
                   <div>
                     <label className="block text-xs font-bold text-[#2C1D11] mb-1">
-                      Description & Flavor Profile
+                      Description & Flavor
                     </label>
                     <textarea
                       rows={3}
@@ -637,7 +634,7 @@ export const EditMenuItemModal: React.FC<EditMenuItemModalProps> = ({
                 {/* Right Column: Image Upload & Preview */}
                 <div className="space-y-4">
                   <label className="block text-xs font-bold text-[#2C1D11]">
-                    Product Photo & Media
+                    Product Photo
                   </label>
 
                   <div className="bg-white border-2 border-dashed border-[#2C1D11]/20 rounded-2xl p-4 flex flex-col items-center justify-center text-center relative group min-h-[220px]">

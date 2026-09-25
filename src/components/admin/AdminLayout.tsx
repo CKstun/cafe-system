@@ -57,7 +57,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
     },
     {
       id: 'categories',
-      label: 'Category Controls & Ordering',
+      label: 'Category Management',
       icon: Layers,
       path: '/admin/categories',
     },
@@ -70,7 +70,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
     },
     {
       id: 'recipes',
-      label: 'Recipe / BOM Settings',
+      label: 'Recipe Settings',
       icon: UtensilsCrossed,
       path: '/admin/recipes',
     },
@@ -79,7 +79,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
   // Derive active title for sticky header
   const currentTitle = useMemo(() => {
     if (pageTitle) return pageTitle;
-    if (activeTab === 'recipes') return 'Recipe / BOM Settings';
+    if (activeTab === 'recipes') return 'Recipe Settings';
     if (activeTab === 'inventory') return 'Raw Inventory Management';
     const current = navItems.find((item) => item.id === activeTab);
     return current ? current.label : 'Sales Reports & Analytics';
