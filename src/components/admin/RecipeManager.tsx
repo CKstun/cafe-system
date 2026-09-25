@@ -251,7 +251,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
 
   return (
     <div className="space-y-6" id="admin-recipe-bom-manager">
-      {/* Header Banner */}
+      {/* Header Banner 
       <div className="bg-white p-5 rounded-3xl border border-[#2C1D11]/10 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
@@ -281,8 +281,8 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
             <Package className="w-4 h-4 text-[#4A2E19]" />
             <span>Raw Inventory Tab</span>
           </button>
-        </div>
-      </div>
+        </div> 
+      </div> */}
 
       {/* Main Two-Column Layout: Left Drink Selection, Right Recipe Workbench */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -485,9 +485,6 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
                   <Layers className="w-4 h-4 text-[#4A2E19]" />
                   Mapped Raw Inventory Items ({draftRows.length})
                 </h4>
-                <p className="text-[11px] text-[#8C7A6B]">
-                  Deducted automatically from global inventory stock whenever 1x {selectedItem?.name} ({selectedSize}) is sold.
-                </p>
               </div>
 
               {/* Quick Preset Fillers 
@@ -538,9 +535,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
                   <p className="text-xs font-bold text-[#2C1D11]">
                     No recipe ingredients mapped for {selectedItem?.name} ({selectedSize})
                   </p>
-                  <p className="text-[11px] text-[#8C7A6B] mt-0.5">
-                    Orders for this size variant will not deduct packaging or raw supplies until mapped.
-                  </p>
+                  
                 </div>
                 <button
                   type="button"
@@ -548,7 +543,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
                   className="px-4 py-2 bg-[#4A2E19] hover:bg-[#3D2514] text-white text-xs font-bold rounded-xl inline-flex items-center gap-2 transition cursor-pointer shadow-xs"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>Map First Raw Ingredient</span>
+                  <span>Add First Raw Ingredient</span>
                 </button>
               </div>
             ) : (
@@ -677,7 +672,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
                 className="px-4 py-2.5 bg-[#FDFBF7] hover:bg-[#4A2E19]/10 text-[#4A2E19] text-xs font-bold rounded-xl border border-[#2C1D11]/15 inline-flex items-center gap-2 transition cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
-                <span>Add Another Supply Item</span>
+                <span>Add Another Raw Item</span>
               </button>
 
               <button

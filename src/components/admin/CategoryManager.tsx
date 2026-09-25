@@ -145,9 +145,7 @@ export const CategoryManager: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Search Bar & New Category Button Controls */}
-      {/* Search Bar & New Category Button Header Bar */}
-      <div className="flex items-center justify-between gap-4 mb-4">
-        {/* Search Input - Expands to take available space */}
+      <div className="bg-white p-4 rounded-3xl border border-stone-200/80 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
         <div className="relative flex-1">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#2C1D11]/40" />
           <input

@@ -354,9 +354,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({ onOpenRecipe
               {filteredItems.length}
             </span>
           </div>
-          <span className="text-[11px] text-stone-400">
-            Click &quot;+ Restock&quot; to log incoming deliveries
-          </span>
+          
         </div>
 
         {filteredItems.length === 0 ? (

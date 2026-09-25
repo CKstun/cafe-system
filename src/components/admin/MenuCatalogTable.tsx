@@ -229,11 +229,10 @@ export const MenuCatalogTable: React.FC<MenuCatalogTableProps> = ({
                               e.stopPropagation();
                               onOpenEdit(item, 'details');
                             }}
-                            className="px-3 py-1.5 bg-[#4A2E19] hover:bg-[#382212] text-white rounded-xl text-xs font-bold transition cursor-pointer inline-flex items-center gap-1 shadow-2xs"
+                            className="p-2 text-[#4A2E19] hover:bg-[#EBE5DF] rounded-xl transition cursor-pointer inline-flex items-center justify-center"
                             title="Edit Item"
                           >
-                            <Edit2 className="w-3.5 h-3.5" />
-                            <span>Edit</span>
+                            <Edit2 className="w-4 h-4" />
                           </button>
 
                           {/* Delete Button with e.stopPropagation() and Confirmation Modal Trigger */}

@@ -8,7 +8,6 @@ import {
   Image as ImageIcon,
   Trash2,
   Plus,
-  Package,
   Layers,
   Sparkles,
   AlertTriangle,
@@ -25,7 +24,7 @@ export interface EditMenuItemModalProps {
   item?: MenuItem | null;
   onClose: () => void;
   onSaveSuccess?: () => void;
-  initialTab?: 'details' | 'variants' | 'bom' | 'restock';
+  initialTab?: 'details' | 'variants' | 'bom';
 }
 
 interface VariantDraft {
@@ -57,13 +56,12 @@ export const EditMenuItemModal: React.FC<EditMenuItemModalProps> = ({
     updateMenuItem,
     addMenuItem,
     saveRecipeRulesForVariant,
-    restockInventoryItem,
   } = useCafe();
 
   const isEditing = Boolean(item && item.id);
 
-  // Active Tab: 'details' | 'variants' | 'bom' | 'restock'
-  const [activeTab, setActiveTab] = useState<'details' | 'variants' | 'bom' | 'restock'>(initialTab);
+  // Active Tab: 'details' | 'variants' | 'bom'
+  const [activeTab, setActiveTab] = useState<'details' | 'variants' | 'bom'>(initialTab);
 
   // Tab 1: Product Details State
   const [name, setName] = useState('');
@@ -85,10 +83,6 @@ export const EditMenuItemModal: React.FC<EditMenuItemModalProps> = ({
   // Tab 3: BOM Recipe Mapping State
   const [selectedBomSize, setSelectedBomSize] = useState<string>('16oz');
   const [bomRows, setBomRows] = useState<BomRecipeDraftRow[]>([]);
-
-  // Tab 4: Quick Restock Pending Deltas (inventory_item_id -> deltaQty)
-  const [restockDeltas, setRestockDeltas] = useState<Record<string, number>>({});
-  const [productDirectRestockAdd, setProductDirectRestockAdd] = useState<number>(0);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitFeedback, setSubmitFeedback] = useState<string | null>(null);
@@ -114,8 +108,6 @@ export const EditMenuItemModal: React.FC<EditMenuItemModalProps> = ({
     setActiveTab(initialTab);
     setImageError(null);
     setSubmitFeedback(null);
-    setRestockDeltas({});
-    setProductDirectRestockAdd(0);
 
     if (item) {
       setName(item.name || '');
@@ -314,17 +306,7 @@ export const EditMenuItemModal: React.FC<EditMenuItemModalProps> = ({
     }
   };
 
-  // Restock delta helper
-  const handleAdjustRestockDelta = (inventoryId: string | number, delta: number) => {
-    const key = String(inventoryId);
-    setRestockDeltas((prev) => ({
-      ...prev,
-      [key]: (prev[key] || 0) + delta,
-    }));
-    setIsDirty(true);
-  };
-
-  // Master Transactional Save: Product Details + Variants + BOM Rules + Restock Adjustments
+  // Master Transactional Save: Product Details + Variants + BOM Rules
   const handleMasterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -349,15 +331,11 @@ export const EditMenuItemModal: React.FC<EditMenuItemModalProps> = ({
         size: variants[0]?.size || '16oz',
         milk_type: item?.milk_type || 'regular',
         image_path: imagePath || '/images/default-coffee.jpg',
-        stock_quantity: Number(directStockQty) + Number(productDirectRestockAdd || 0),
+        stock_quantity: Number(directStockQty),
         is_available: isAvailable,
         track_inventory: true,
         available_sizes: variants,
         recipes: bomRows,
-        stock_adjustments: Object.entries(restockDeltas).map(([rawId, qty]) => ({
-          inventory_item_id: rawId,
-          add_quantity: qty,
-        })),
       };
 
       // 2. Dispatch simulated or real backend request
@@ -395,13 +373,6 @@ export const EditMenuItemModal: React.FC<EditMenuItemModalProps> = ({
             }));
           saveRecipeRulesForVariant(targetId, variant.size, rulesForSize);
         }
-
-        // Apply raw stock adjustments
-        Object.entries(restockDeltas).forEach(([rawId, deltaQty]) => {
-          if (deltaQty > 0) {
-            restockInventoryItem(rawId, deltaQty, `Direct restock via Unified Edit Modal for "${name}"`);
-          }
-        });
       } else {
         // New item creation
         addMenuItem({
@@ -476,13 +447,12 @@ export const EditMenuItemModal: React.FC<EditMenuItemModalProps> = ({
           </div>
         </div>
 
-        {/* 4 Integrated Navigation Tabs */}
+        {/* 3 Integrated Navigation Tabs */}
         <div className="flex items-center gap-1.5 px-5 py-2.5 bg-[#F4EFEB] border-b border-[#2C1D11]/10 overflow-x-auto no-scrollbar">
           {[
             { id: 'details', label: '1. Product Details', icon: Coffee },
             { id: 'variants', label: '2. Sizes & Pricing', icon: TrendingUp },
             { id: 'bom', label: '3. Recipe', icon: Layers },
-            { id: 'restock', label: '4. Restock', icon: Package, badge: Object.keys(restockDeltas).length },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -499,11 +469,6 @@ export const EditMenuItemModal: React.FC<EditMenuItemModalProps> = ({
               >
                 <Icon className="w-3.5 h-3.5" />
                 <span>{tab.label}</span>
-                {tab.badge && tab.badge > 0 ? (
-                  <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-amber-300 text-stone-900 font-bold">
-                    +{tab.badge}
-                  </span>
-                ) : null}
               </button>
             );
           })}
@@ -958,124 +923,6 @@ export const EditMenuItemModal: React.FC<EditMenuItemModalProps> = ({
                       })}
                     </tbody>
                   </table>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* ========================================================================= */}
-          {/* TAB 4: QUICK RESTOCK / STOCK OVERRIDE                                      */}
-          {/* ========================================================================= */}
-          {activeTab === 'restock' && (
-            <div className="space-y-5">
-              {/* Product Direct Stock Adjustment */}
-              <div className="bg-white p-4 rounded-2xl border border-[#2C1D11]/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <h4 className="font-bold text-xs text-[#2C1D11]">Product Direct Stock</h4>
-                  <p className="text-[11px] text-[#2C1D11]/60">
-                    Current base stock quantity: <strong>{directStockQty} units</strong>
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                  {[+10, +25, +50].map((qty) => (
-                    <button
-                      key={qty}
-                      type="button"
-                      onClick={() => {
-                        setProductDirectRestockAdd((prev) => prev + qty);
-                        setIsDirty(true);
-                      }}
-                      className="px-2.5 py-1 bg-[#F4EFEB] hover:bg-[#E2D6C9] text-[#4A2E19] text-xs font-bold rounded-lg transition cursor-pointer"
-                    >
-                      +{qty}
-                    </button>
-                  ))}
-                  {productDirectRestockAdd > 0 && (
-                    <span className="px-2 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold font-mono rounded-lg">
-                      Pending: +{productDirectRestockAdd}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Linked Raw Inventory Items Restock List */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-bold text-xs text-[#2C1D11] uppercase tracking-wider text-[10px]">
-                    Linked Raw Bottlenecks & Ingredients ({linkedRawItems.length})
-                  </h4>
-                  <span className="text-[11px] text-[#2C1D11]/60">
-                    Directly replenish required raw supplies without leaving this product
-                  </span>
-                </div>
-
-                {linkedRawItems.length === 0 ? (
-                  <div className="p-6 bg-white rounded-2xl border border-[#2C1D11]/10 text-center">
-                    <p className="text-xs text-[#2C1D11]/60">
-                      No raw inventory items are currently linked in Tab 3 (BOM Recipe). Once linked, quick restock controls will appear here.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {linkedRawItems.map((raw) => {
-                      const delta = restockDeltas[String(raw.id)] || 0;
-                      const isLow = raw.stock_quantity <= raw.low_stock_threshold;
-                      return (
-                        <div
-                          key={raw.id}
-                          className="bg-white p-4 rounded-2xl border border-[#2C1D11]/10 space-y-3"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="font-bold text-xs text-[#2C1D11]">{raw.name}</p>
-                              <p className="text-[10px] text-[#2C1D11]/60">
-                                Threshold: {raw.low_stock_threshold} {raw.unit}
-                              </p>
-                            </div>
-                            <span
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
-                                isLow ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-800'
-                              }`}
-                            >
-                              {raw.stock_quantity} {raw.unit}
-                            </span>
-                          </div>
-
-                          {/* Quick Restock Buttons */}
-                          <div className="flex items-center justify-between pt-2 border-t border-[#2C1D11]/5">
-                            <div className="flex items-center gap-1">
-                              {[+25, +50, +100].map((inc) => (
-                                <button
-                                  key={inc}
-                                  type="button"
-                                  onClick={() => handleAdjustRestockDelta(raw.id, inc)}
-                                  className="px-2 py-1 bg-[#F4EFEB] hover:bg-[#E2D6C9] text-[#4A2E19] text-[11px] font-bold rounded-lg transition cursor-pointer"
-                                >
-                                  +{inc}
-                                </button>
-                              ))}
-                            </div>
-
-                            {delta > 0 && (
-                              <div className="flex items-center gap-1">
-                                <span className="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                                  +{delta} {raw.unit}
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => handleAdjustRestockDelta(raw.id, -delta)}
-                                  className="text-[10px] text-gray-400 hover:text-red-500 cursor-pointer"
-                                >
-                                  Clear
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
                 )}
               </div>
             </div>

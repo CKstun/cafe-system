@@ -4,6 +4,8 @@ import {
   ShieldCheck,
   TrendingUp,
   Users,
+  Eye,
+  EyeOff,
   Coffee,
   Package,
   AlertTriangle,
@@ -90,7 +92,7 @@ export const AdminDashboard: React.FC = () => {
   }, [inventoryItems]);
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-
+  const [showInventoryLogs, setShowInventoryLogs] = useState(false);
   // Analytics Date Filter
   const [dateRange, setDateRange] = useState<'today' | '7days' | '30days' | 'custom' | 'all'>('all');
   const [startDate, setStartDate] = useState<string>(() => {
@@ -601,66 +603,127 @@ export const AdminDashboard: React.FC = () => {
 
             {/* Live Inventory Audit Logs (`inventory_logs`) */}
             <div className="bg-white p-6 rounded-3xl border border-stone-200/80 shadow-xs">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between gap-4">
                 <div>
                   <h3 className="font-bold text-stone-900 text-sm flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-[#5C4033]" />
-                    Live System Inventory Audit Logs (`inventory_logs`)
+                    Live System Inventory Audit Logs
                   </h3>
+
                   <p className="text-xs text-stone-500 mt-0.5">
                     Immutable history of automated order deductions, manual restocks, and adjustments.
                   </p>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowInventoryLogs((prev) => !prev)}
+                  className="shrink-0 min-h-[38px] px-3.5 py-2 bg-[#F4EFEB] hover:bg-[#E6DDD4] text-[#5C4033] rounded-xl text-xs font-bold transition flex items-center gap-2"
+                >
+                  {showInventoryLogs ? (
+                    <>
+                      <EyeOff className="w-4 h-4" />
+                      Hide Logs
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="w-4 h-4" />
+                      View Logs
+                    </>
+                  )}
+                </button>
               </div>
 
-              <div className="rounded-2xl border border-stone-200/80 overflow-hidden">
-                <table className="w-full text-xs text-left">
-                  <thead>
-                    <tr className="bg-stone-50 border-b border-stone-200 text-stone-500 uppercase tracking-wider text-[10px]">
-                      <th className="py-3 px-4 font-semibold">Timestamp</th>
-                      <th className="py-3 px-4 font-semibold">User</th>
-                      <th className="py-3 px-4 font-semibold">Item Affected</th>
-                      <th className="py-3 px-4 font-semibold">Type</th>
-                      <th className="py-3 px-4 font-semibold text-right">Change</th>
-                      <th className="py-3 px-4 font-semibold">Notes</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-stone-100">
-                    {inventoryLogs.slice(0, 15).map((log) => (
-                      <tr key={log.id} className="hover:bg-stone-50/60">
-                        <td className="py-3 px-4 text-stone-500 font-mono text-[11px]">
-                          {new Date(log.created_at).toLocaleString()}
-                        </td>
-                        <td className="py-3 px-4 font-semibold text-stone-800">
-                          {log.user_name || 'System'}
-                        </td>
-                        <td className="py-3 px-4 font-bold text-[#5C4033]">{log.item_name}</td>
-                        <td className="py-3 px-4">
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                              log.change_type === 'sale'
-                                ? 'bg-amber-100 text-amber-900'
-                                : log.change_type === 'restock'
-                                ? 'bg-emerald-100 text-emerald-900'
-                                : 'bg-red-100 text-[#DC2626]'
-                            }`}
+              {showInventoryLogs && (
+                <div className="mt-5 rounded-2xl border border-stone-200/80 overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-3 bg-stone-50 border-b border-stone-200">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
+                      Recent Activity
+                    </span>
+
+                    <span className="text-[10px] font-semibold text-stone-400">
+                      Showing latest 15 logs
+                    </span>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs text-left">
+                      <thead>
+                        <tr className="bg-white border-b border-stone-200 text-stone-500 uppercase tracking-wider text-[10px]">
+                          <th className="py-3 px-4 font-semibold">Timestamp</th>
+                          <th className="py-3 px-4 font-semibold">User</th>
+                          <th className="py-3 px-4 font-semibold">Item Affected</th>
+                          <th className="py-3 px-4 font-semibold">Type</th>
+                          <th className="py-3 px-4 font-semibold text-right">Change</th>
+                          <th className="py-3 px-4 font-semibold">Notes</th>
+                        </tr>
+                      </thead>
+
+                      <tbody className="divide-y divide-stone-100">
+                        {inventoryLogs.slice(0, 15).map((log) => (
+                          <tr
+                            key={log.id}
+                            className="hover:bg-stone-50/60"
                           >
-                            {log.change_type}
-                          </span>
-                        </td>
-                        <td
-                          className={`py-3 px-4 text-right font-mono font-bold ${
-                            log.quantity_changed < 0 ? 'text-[#DC2626]' : 'text-emerald-700'
-                          }`}
-                        >
-                          {log.quantity_changed > 0 ? `+${log.quantity_changed}` : log.quantity_changed}
-                        </td>
-                        <td className="py-3 px-4 text-stone-600 italic text-[11px]">{log.notes}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                            <td className="py-3 px-4 text-stone-500 font-mono text-[11px]">
+                              {new Date(log.created_at).toLocaleString()}
+                            </td>
+
+                            <td className="py-3 px-4 font-semibold text-stone-800">
+                              {log.user_name || 'System'}
+                            </td>
+
+                            <td className="py-3 px-4 font-bold text-[#5C4033]">
+                              {log.item_name}
+                            </td>
+
+                            <td className="py-3 px-4">
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                                  log.change_type === 'sale'
+                                    ? 'bg-amber-100 text-amber-900'
+                                    : log.change_type === 'restock'
+                                    ? 'bg-emerald-100 text-emerald-900'
+                                    : 'bg-red-100 text-[#DC2626]'
+                                }`}
+                              >
+                                {log.change_type}
+                              </span>
+                            </td>
+
+                            <td
+                              className={`py-3 px-4 text-right font-mono font-bold ${
+                                log.quantity_changed < 0
+                                  ? 'text-[#DC2626]'
+                                  : 'text-emerald-700'
+                              }`}
+                            >
+                              {log.quantity_changed > 0
+                                ? `+${log.quantity_changed}`
+                                : log.quantity_changed}
+                            </td>
+
+                            <td className="py-3 px-4 text-stone-600 italic text-[11px]">
+                              {log.notes}
+                            </td>
+                          </tr>
+                        ))}
+
+                        {inventoryLogs.length === 0 && (
+                          <tr>
+                            <td
+                              colSpan={6}
+                              className="py-8 text-center text-stone-500"
+                            >
+                              No inventory audit logs recorded yet.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
