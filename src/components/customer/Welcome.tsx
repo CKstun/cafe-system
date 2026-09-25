@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCafe } from '../../context/CafeContext';
+import { useGuestSession } from '../../hooks/useGuestSession';
 import { CafeLogo } from '../common/CafeLogo';
 import { OrderType } from '../../types/cafe';
+import { Sparkles, Clock } from 'lucide-react';
 
 /**
  * Welcome Component for Café Pepita.
@@ -10,6 +12,7 @@ import { OrderType } from '../../types/cafe';
  * - Dynamic button validation continuously tracking customer name and order type.
  * - Disabled state styling: `disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none`
  *   retaining the brand color `bg-[#4A2E19] text-white`.
+ * - Pre-fills customer name from 8-hour guest session if active; starts blank if expired.
  * - Dine-in order workflow simplification: table selection removed; all dine-in orders
  *   are picked up at the counter upon callout.
  */
@@ -20,10 +23,21 @@ export const Welcome: React.FC = () => {
     setCustomerDetails,
     setCustomerScreen,
     navigate,
+    saveCustomerNameAtCheckout,
   } = useCafe();
 
-  const [nameInput, setNameInput] = useState(customerName);
+  const { isSessionActive, customerName: storedGuestName } = useGuestSession();
+
+  const [nameInput, setNameInput] = useState(() => {
+    return isSessionActive && storedGuestName ? storedGuestName : customerName || '';
+  });
   const [typeInput, setTypeInput] = useState<OrderType>(orderType || 'dine-in');
+
+  useEffect(() => {
+    if (isSessionActive && storedGuestName && !nameInput) {
+      setNameInput(storedGuestName);
+    }
+  }, [isSessionActive, storedGuestName]);
 
   const isFormValid = nameInput.trim().length > 0 && Boolean(typeInput);
 
@@ -31,7 +45,9 @@ export const Welcome: React.FC = () => {
     e.preventDefault();
     if (!isFormValid) return;
 
-    setCustomerDetails(nameInput.trim(), typeInput, null);
+    const cleanName = nameInput.trim();
+    saveCustomerNameAtCheckout(cleanName);
+    setCustomerDetails(cleanName, typeInput, null);
     setCustomerScreen(3); // Advance to Menu Catalog
     navigate('/menu');
   };
@@ -74,15 +90,23 @@ export const Welcome: React.FC = () => {
         <form onSubmit={handleContinue} className="max-w-sm mx-auto space-y-4">
           {/* YOUR NAME Field */}
           <div>
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-[#8C7A6B] mb-1.5 text-left">
-              YOUR NAME <span className="text-rose-600">*</span>
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-[#8C7A6B] text-left">
+                YOUR NAME <span className="text-rose-600">*</span>
+              </label>
+              {isSessionActive && storedGuestName ? (
+                <span className="inline-flex items-center gap-1 text-[9px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-full">
+                  <Sparkles className="w-2.5 h-2.5 text-emerald-600" />
+                  <span>8h Active Session</span>
+                </span>
+              ) : null}
+            </div>
             <input
               type="text"
               required
               value={nameInput}
               onChange={(e) => setNameInput(e.target.value)}
-              placeholder="e.g. Barbara"
+              placeholder="e.g. Mark or Barbara"
               className="w-full px-4 py-3 bg-white border border-[#EADBCE] rounded-2xl text-xs text-[#2C1D11] placeholder-[#B5A597] focus:outline-none focus:ring-2 focus:ring-[#4A2E19] focus:border-transparent transition shadow-2xs"
             />
           </div>

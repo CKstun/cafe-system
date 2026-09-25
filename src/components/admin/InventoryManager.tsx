@@ -2,18 +2,16 @@ import React, { useState, useMemo } from 'react';
 import {
   Package,
   Plus,
+  Minus,
   AlertTriangle,
   CheckCircle2,
-  RefreshCw,
   Search,
   Trash2,
   Edit2,
   TrendingDown,
-  X,
   Filter,
   Layers,
-  ArrowUpRight,
-  Sparkles,
+  X,
 } from 'lucide-react';
 import { useCafe } from '../../context/CafeContext';
 import { InventoryItem } from '../../types/cafe';
@@ -29,8 +27,6 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({ onOpenRecipe
     updateInventoryItem,
     deleteInventoryItem,
     restockInventoryItem,
-    recipeRules,
-    menuItems,
   } = useCafe();
 
   // Search & Filter State
@@ -41,9 +37,6 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({ onOpenRecipe
   // Modal States
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
-  const [restockModalItem, setRestockModalItem] = useState<InventoryItem | null>(null);
-  const [restockQty, setRestockQty] = useState<number>(100);
-  const [restockNote, setRestockNote] = useState<string>('');
 
   // Form State for Add / Edit
   const [formData, setFormData] = useState<{
@@ -61,7 +54,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({ onOpenRecipe
     category: 'packaging',
   });
 
-  // Inline Quick Restock state per item
+  // Inline Quick Stock state per item
   const [inlineRestockValues, setInlineRestockValues] = useState<{ [id: string]: number }>({});
 
   // Summary Metrics
@@ -112,39 +105,6 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({ onOpenRecipe
     });
   }, [inventoryItems, searchTerm, statusFilter, categoryFilter]);
 
-  // Calculate Linked Recipes Count for each raw item
-  const getLinkedRecipesCount = (itemId: number | string) => {
-    return recipeRules.filter((r) => String(r.inventory_item_id) === String(itemId)).length;
-  };
-
-  // Open Create Form
-  const openCreateModal = () => {
-    setEditingItem(null);
-    setFormData({
-      name: '',
-      stock_quantity: 100,
-      unit: 'pcs',
-      low_stock_threshold: 30,
-      category: 'packaging',
-      cost_per_unit: undefined,
-    });
-    setIsAddModalOpen(true);
-  };
-
-  // Open Edit Form
-  const openEditModal = (item: InventoryItem) => {
-    setEditingItem(item);
-    setFormData({
-      name: item.name,
-      stock_quantity: item.stock_quantity,
-      unit: item.unit,
-      low_stock_threshold: item.low_stock_threshold,
-      category: item.category || 'packaging',
-      cost_per_unit: item.cost_per_unit,
-    });
-    setIsAddModalOpen(true);
-  };
-
   // Submit Add / Edit
   const handleSubmitForm = (e: React.FormEvent) => {
     e.preventDefault();
@@ -172,20 +132,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({ onOpenRecipe
     setIsAddModalOpen(false);
   };
 
-  // Quick Restock via Modal
-  const handleOpenRestockModal = (item: InventoryItem) => {
-    setRestockModalItem(item);
-    setRestockQty(100);
-    setRestockNote('New delivery batch shipment received');
-  };
-
-  const handleConfirmRestockModal = () => {
-    if (!restockModalItem || restockQty <= 0) return;
-    restockInventoryItem(restockModalItem.id, Number(restockQty), restockNote);
-    setRestockModalItem(null);
-  };
-
-  // Inline Restock
+  // Inline Quick Stock
   const handleInlineRestock = (item: InventoryItem) => {
     const qty = inlineRestockValues[String(item.id)] || 50;
     if (qty > 0) {
@@ -195,49 +142,36 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({ onOpenRecipe
     }
   };
 
+  const openCreateModal = () => {
+    setEditingItem(null);
+    setFormData({
+      name: '',
+      stock_quantity: 100,
+      unit: 'pcs',
+      low_stock_threshold: 30,
+      category: 'packaging',
+      cost_per_unit: undefined,
+    });
+    setIsAddModalOpen(true);
+  };
+
+  // Open Edit Form
+  const openEditModal = (item: InventoryItem) => {
+    setEditingItem(item);
+    setFormData({
+      name: item.name,
+      stock_quantity: item.stock_quantity,
+      unit: item.unit,
+      low_stock_threshold: item.low_stock_threshold,
+      category: item.category || 'packaging',
+      cost_per_unit: item.cost_per_unit,
+    });
+    setIsAddModalOpen(true);
+  };
+
   return (
     <div className="space-y-6" id="admin-inventory-manager">
-      {/* Top Header & Action */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-3xl border border-stone-200/80 shadow-xs">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-[#5C3D2E]/10 flex items-center justify-center text-[#5C3D2E]">
-              <Package className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-stone-900 tracking-tight">
-                Raw Inventory Management
-              </h2>
-              <p className="text-xs text-stone-500 mt-0.5">
-                Track global stock levels, log restock entries, manage unit definitions, and monitor low-stock threshold alerts
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2.5">
-          {onOpenRecipeLinker && (
-            <button
-              type="button"
-              onClick={() => onOpenRecipeLinker()}
-              className="px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold rounded-2xl flex items-center gap-2 transition cursor-pointer"
-            >
-              <Layers className="w-4 h-4 text-[#5C3D2E]" />
-              Recipe / BOM Settings
-            </button>
-          )}
-
-          <button
-            type="button"
-            onClick={openCreateModal}
-            className="px-4 py-2.5 bg-[#5C3D2E] hover:bg-[#4A2F22] active:scale-95 text-white text-xs font-bold rounded-2xl flex items-center gap-2 shadow-xs transition cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            Add Raw Item
-          </button>
-        </div>
-      </div>
-
+  
       {/* Critical Stock Alert Banner if depleted items exist */}
       {depletedItems.length > 0 && (
         <div className="bg-red-50 border border-red-200 p-4 rounded-3xl flex items-start sm:items-center justify-between gap-3 shadow-xs animate-in fade-in duration-200">
@@ -264,7 +198,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({ onOpenRecipe
         </div>
       )}
 
-      {/* Metric Stats Cards */}
+      {/* Metric Stats Cards 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
         <div
           onClick={() => setStatusFilter('all')}
@@ -345,7 +279,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({ onOpenRecipe
             Sufficient reserve
           </span>
         </div>
-      </div>
+      </div> */}
 
       {/* Filter and Search Bar */}
       <div className="bg-white p-4 rounded-3xl border border-stone-200/80 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
@@ -379,7 +313,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({ onOpenRecipe
             ))}
           </div>
 
-          {/* Category Filter */}
+          {/* Category Filter 
           {categories.length > 0 && (
             <div className="flex items-center gap-1.5">
               <Filter className="w-3.5 h-3.5 text-stone-400 ml-1" />
@@ -396,7 +330,16 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({ onOpenRecipe
                 ))}
               </select>
             </div>
-          )}
+          )} */}
+
+          <button 
+            type="button"
+            onClick={openCreateModal}
+            className="px-4 py-2.5 bg-[#5C3D2E] hover:bg-[#4A2F22] active:scale-95 text-white text-xs font-bold rounded-2xl flex items-center gap-2 shadow-xs transition cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            Add Raw Item
+          </button>
         </div>
       </div>
 
@@ -433,8 +376,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({ onOpenRecipe
                   <th className="py-3 px-4">Current Stock</th>
                   <th className="py-3 px-4">Threshold</th>
                   <th className="py-3 px-4">Stock Status</th>
-                  <th className="py-3 px-4">Linked Recipes</th>
-                  <th className="py-3 px-4 text-center">Quick Restock</th>
+                  <th className="py-3 px-4 text-center">Quick Stock</th>
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
@@ -442,7 +384,6 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({ onOpenRecipe
                 {filteredItems.map((item) => {
                   const isDepleted = item.stock_quantity <= 0;
                   const isLow = item.stock_quantity > 0 && item.stock_quantity <= item.low_stock_threshold;
-                  const linkedCount = getLinkedRecipesCount(item.id);
                   const inlineVal = inlineRestockValues[String(item.id)] || 50;
 
                   return (
@@ -495,40 +436,38 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({ onOpenRecipe
                         {isDepleted ? (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-red-100 text-red-700 border border-red-200">
                             <AlertTriangle className="w-3 h-3" />
-                            Out of Stock
+                            Used Up
                           </span>
                         ) : isLow ? (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
                             <TrendingDown className="w-3 h-3" />
-                            Low Stock
+                            Low
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
                             <CheckCircle2 className="w-3 h-3" />
-                            Healthy Stock
+                            Healthy
                           </span>
                         )}
                       </td>
 
-                      {/* Linked Recipes */}
+                      {/* Quick Stock */}
                       <td className="py-3.5 px-4">
-                        {linkedCount > 0 ? (
+                        <div className="flex items-center justify-center gap-1">
                           <button
                             type="button"
-                            onClick={() => onOpenRecipeLinker && onOpenRecipeLinker()}
-                            className="inline-flex items-center gap-1 text-stone-600 hover:text-[#5C3D2E] font-semibold text-xs transition underline decoration-stone-300 hover:decoration-[#5C3D2E]"
+                            onClick={() =>
+                              setInlineRestockValues((prev) => ({
+                                ...prev,
+                                [String(item.id)]: Math.max(1, (prev[String(item.id)] ?? 1) - 1),
+                              }))
+                            }
+                            className="w-6 h-6 flex items-center justify-center bg-stone-100 hover:bg-stone-200 active:scale-95 text-stone-600 font-bold text-xs rounded-md transition"
+                            title="Decrease"
                           >
-                            <span>{linkedCount} variant{linkedCount > 1 ? 's' : ''}</span>
-                            <ArrowUpRight className="w-3 h-3" />
+                            <Minus className="w-3 h-3" />
                           </button>
-                        ) : (
-                          <span className="text-stone-400 text-[11px]">Unlinked</span>
-                        )}
-                      </td>
 
-                      {/* Quick Restock Action */}
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center justify-center gap-1.5">
                           <input
                             type="number"
                             min="1"
@@ -539,25 +478,22 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({ onOpenRecipe
                                 [String(item.id)]: Math.max(1, Number(e.target.value)),
                               }))
                             }
-                            className="w-16 px-2 py-1 bg-stone-50 border border-stone-200 rounded-lg text-center font-mono text-xs focus:ring-1 focus:ring-[#5C3D2E]"
+                            className="w-12 px-1 py-1 bg-stone-50 border border-stone-200 rounded-lg text-center font-mono text-xs focus:ring-1 focus:ring-[#5C3D2E] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             placeholder="Qty"
                           />
+
                           <button
                             type="button"
-                            onClick={() => handleInlineRestock(item)}
-                            className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs rounded-lg transition flex items-center gap-1 shadow-2xs"
-                            title={`Restock +${inlineVal} ${item.unit}`}
+                            onClick={() =>
+                              setInlineRestockValues((prev) => ({
+                                ...prev,
+                                [String(item.id)]: (prev[String(item.id)] ?? 1) + 1,
+                              }))
+                            }
+                            className="w-6 h-6 flex items-center justify-center bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs rounded-md transition"
+                            title="Increase"
                           >
                             <Plus className="w-3 h-3" />
-                            Add
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleOpenRestockModal(item)}
-                            className="p-1 text-stone-400 hover:text-stone-700 rounded-lg hover:bg-stone-100 transition"
-                            title="Detailed Restock Modal"
-                          >
-                            <RefreshCw className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </td>
@@ -728,106 +664,6 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({ onOpenRecipe
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL 2: SHIPMENT RESTOCK MODAL */}
-      {restockModalItem && (
-        <div className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-stone-200 animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between pb-4 border-b border-stone-100">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
-                  <RefreshCw className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-stone-900 text-base">
-                    Restock {restockModalItem.name}
-                  </h3>
-                  <p className="text-xs text-stone-500">
-                    Current stock: {restockModalItem.stock_quantity} {restockModalItem.unit}
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setRestockModalItem(null)}
-                className="w-8 h-8 rounded-full bg-stone-100 text-stone-500 hover:bg-stone-200 flex items-center justify-center transition"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="space-y-4 mt-4">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-1.5">
-                  Units to Add (+ Restock)
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    min="1"
-                    value={restockQty}
-                    onChange={(e) => setRestockQty(Math.max(1, Number(e.target.value)))}
-                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-2xl text-base font-mono font-bold text-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-600"
-                  />
-                  <span className="absolute right-3.5 top-3 text-xs font-bold text-stone-500">
-                    {restockModalItem.unit}
-                  </span>
-                </div>
-                <div className="flex gap-2 mt-2">
-                  {[50, 100, 250, 500].map((preset) => (
-                    <button
-                      key={preset}
-                      type="button"
-                      onClick={() => setRestockQty(preset)}
-                      className="px-2.5 py-1 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold rounded-lg transition"
-                    >
-                      +{preset}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-1.5">
-                  Shipment / Restock Notes
-                </label>
-                <input
-                  type="text"
-                  value={restockNote}
-                  onChange={(e) => setRestockNote(e.target.value)}
-                  placeholder="e.g. Delivery from Supplier packaging box #2"
-                  className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-2xl text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-emerald-600"
-                />
-              </div>
-
-              {/* Projected Result */}
-              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between text-xs">
-                <span className="text-emerald-800 font-medium">Projected new stock level:</span>
-                <span className="font-mono font-extrabold text-emerald-900 text-sm">
-                  {restockModalItem.stock_quantity + Number(restockQty)} {restockModalItem.unit}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-stone-100">
-                <button
-                  type="button"
-                  onClick={() => setRestockModalItem(null)}
-                  className="px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold rounded-2xl transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleConfirmRestockModal}
-                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-2xl shadow-xs transition"
-                >
-                  Confirm Shipment Restock
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       )}

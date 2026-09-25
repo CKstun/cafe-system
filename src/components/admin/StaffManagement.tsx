@@ -194,35 +194,7 @@ export const StaffManagement: React.FC = () => {
           </button>
         </div>
       )}
-
-      {/* Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-3xl border border-[#2C1D11]/10 shadow-xs">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-[#4A2E19]/10 text-[#4A2E19] flex items-center justify-center">
-              <Users className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-xl font-serif text-[#2C1D11] tracking-tight font-bold">
-                Staff Account Management
-              </h2>
-              <p className="text-xs text-[#8C7A6B]">
-                Manage credentials, authentication guards, and Sanctum tokens for Café Pepita personnel
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={handleOpenCreateModal}
-          className="px-5 py-2.5 bg-[#4A2E19] hover:bg-[#382212] text-white text-xs font-bold rounded-2xl transition flex items-center gap-2 shadow-xs cursor-pointer shrink-0 self-start sm:self-auto"
-        >
-          <UserPlus className="w-4 h-4" />
-          <span>+ Create Account</span>
-        </button>
-      </div>
-
+      
       {/* Search and Filters Bar */}
       <div className="bg-white p-4 rounded-2xl border border-[#2C1D11]/10 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 shadow-2xs">
         {/* Search */}
@@ -237,9 +209,9 @@ export const StaffManagement: React.FC = () => {
           />
         </div>
 
-        {/* Filter Badges */}
+        {/* Filter Badges 
         <div className="flex items-center gap-2 shrink-0 flex-wrap">
-          {/* Role Filter */}
+          {/* Role Filter 
           <div className="flex items-center gap-1 bg-[#FDFBF7] p-1 rounded-xl border border-[#2C1D11]/10 text-xs">
             <button
               type="button"
@@ -274,9 +246,9 @@ export const StaffManagement: React.FC = () => {
             >
               Admins
             </button>
-          </div>
+          </div> */}
 
-          {/* Status Filter */}
+          {/* Status Filter 
           <div className="flex items-center gap-1 bg-[#FDFBF7] p-1 rounded-xl border border-[#2C1D11]/10 text-xs">
             <button
               type="button"
@@ -311,8 +283,8 @@ export const StaffManagement: React.FC = () => {
             >
               Disabled
             </button>
-          </div>
-        </div>
+          </div> 
+        </div>*/}
       </div>
 
       {/* Account Catalog Table */}
@@ -322,7 +294,7 @@ export const StaffManagement: React.FC = () => {
             <thead>
               <tr className="border-b border-[#2C1D11]/10 bg-[#FDFBF7] text-[#8C7A6B] uppercase tracking-wider text-[10px] font-bold">
                 <th className="py-4 px-6">Name</th>
-                <th className="py-4 px-6">Email</th>
+                {/* <th className="py-4 px-6">Email</th> */}
                 <th className="py-4 px-6">Role</th>
                 <th className="py-4 px-6">Status</th>
                 <th className="py-4 px-6 text-right">Actions</th>
@@ -372,27 +344,27 @@ export const StaffManagement: React.FC = () => {
                               <span>{user.name}</span>
                               {isCurrentAdmin && (
                                 <span className="text-[9px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 font-bold uppercase tracking-wider">
-                                  You (Active Session)
+                                  (Active)
                                 </span>
                               )}
                             </div>
                             <div className="text-[10px] text-[#8C7A6B] flex items-center gap-1.5 mt-0.5">
                               <span>ID: #{user.id}</span>
-                              {user.created_at && (
+                              {/*{user.created_at && (
                                 <>
                                   <span>•</span>
                                   <span>Joined {user.created_at}</span>
                                 </>
-                              )}
+                              )} */}
                             </div>
                           </div>
                         </div>
                       </td>
 
-                      {/* Email Column */}
+                      {/* Email Column 
                       <td className="py-4 px-6 font-mono text-stone-700">
-                        {user.email}
-                      </td>
+                        {user.email} 
+                      </td> */}
 
                       {/* Role Column */}
                       <td className="py-4 px-6">
@@ -545,6 +517,15 @@ export const StaffManagement: React.FC = () => {
         currentAdminId={currentAdminId}
         isDeleting={isDeleting}
       />
+
+      <button
+          type="button"
+          onClick={handleOpenCreateModal}
+          className="px-5 py-2.5 bg-[#4A2E19] hover:bg-[#382212] text-white text-xs font-bold rounded-2xl transition flex items-center gap-2 shadow-xs cursor-pointer shrink-0 self-start sm:self-auto"
+        >
+          <UserPlus className="w-4 h-4" />
+          <span>+ Create Account</span>
+        </button>
     </div>
   );
 };

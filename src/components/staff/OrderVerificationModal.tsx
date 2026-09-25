@@ -96,7 +96,7 @@ export const OrderVerificationModal: React.FC<OrderVerificationModalProps> = ({
                   Order Payment Verification
                 </h2>
                 <span className="font-mono text-xs font-bold px-2.5 py-0.5 rounded-full bg-[#EADBCE] text-[#5C4033]">
-                  #{order.tracking_token}
+                  Order #{order.order_number || (order.id % 10000)} · #{order.tracking_token}
                 </span>
                 <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 font-bold border border-amber-300">
                   Pending Verification
@@ -246,8 +246,10 @@ export const OrderVerificationModal: React.FC<OrderVerificationModalProps> = ({
                       <User className="w-4 h-4" />
                     </div>
                     <div>
-                      <span className="text-[10px] text-[#8C7A6B] block">Customer Name</span>
-                      <span className="text-xs font-bold text-[#2B231F]">{order.customer_name}</span>
+                      <span className="text-[10px] text-[#8C7A6B] block">Customer & Order</span>
+                      <span className="text-xs font-bold text-[#2B231F]">
+                        {order.customer_name} — Order #{order.order_number || (order.id % 10000)}
+                      </span>
                     </div>
                   </div>
 

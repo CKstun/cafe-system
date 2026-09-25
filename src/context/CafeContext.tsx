@@ -31,6 +31,12 @@ import {
   INITIAL_RECIPE_RULES,
 } from '../data/defaultMenu';
 import { playOrderChime } from '../utils/audioChime';
+import {
+  getOrCreateGuestSessionId,
+  getStoredGuestCustomerName,
+  STORAGE_KEY_CUSTOMER_NAME,
+  STORAGE_KEY_SESSION_TIMESTAMP,
+} from '../hooks/useGuestSession';
 
 export const INITIAL_SPATIE_ROLES: SpatieRoleDefinition[] = [
   {
@@ -143,7 +149,11 @@ interface CafeContextType {
   inventoryLogs: InventoryLog[];
 
   // Customer Session State
+  guestSessionId: string;
   customerName: string;
+  setCustomerName: (name: string) => void;
+  saveCustomerNameAtCheckout: (name: string) => void;
+  customerOrders: Order[];
   orderType: OrderType;
   selectedTableId: number | null;
   deliveryDetails: DeliveryDetails | null;
@@ -852,11 +862,24 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [orders, setOrders] = useState<Order[]>(() => {
     const saved = localStorage.getItem('cp_orders');
-    if (saved) return JSON.parse(saved);
-    // Initial sample orders for immediate demonstration
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.map((ord: any, idx: number) => ({
+            ...ord,
+            order_number: ord.order_number || 1040 + idx + 1,
+            guest_session_id: ord.guest_session_id || `guest-session-demo-${ord.id || idx}`,
+          }));
+        }
+      } catch {}
+    }
+    // Initial sample orders for immediate demonstration with order numbers & guest session IDs
     return [
       {
         id: 1001,
+        order_number: 1041,
+        guest_session_id: 'guest-session-cheska-kimberly',
         tracking_token: 'CP-849201',
         table_id: 2,
         customer_name: 'Cheska Kimberly',
@@ -897,6 +920,8 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
       },
       {
         id: 1002,
+        order_number: 1042,
+        guest_session_id: 'guest-session-david-tan-1',
         tracking_token: 'CP-712493',
         table_id: null,
         customer_name: 'David Tan',
@@ -937,6 +962,8 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
       },
       {
         id: 1003,
+        order_number: 1043,
+        guest_session_id: 'guest-session-marco-valerio',
         tracking_token: 'CP-902341',
         table_id: null,
         customer_name: 'Marco Valerio',
@@ -965,6 +992,35 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
             customizations: {
               size: '16oz',
               milk_type: 'regular',
+              add_ons: [],
+            },
+          },
+        ],
+      },
+      {
+        id: 1004,
+        order_number: 1044,
+        guest_session_id: 'guest-session-david-tan-2',
+        tracking_token: 'CP-658219',
+        table_id: 4,
+        customer_name: 'David Tan', // Same-name customer disambiguated with distinct Order #1044
+        order_type: 'dine-in',
+        total_amount: 195,
+        payment_method: 'cash',
+        payment_status: 'paid',
+        order_status: 'preparing',
+        created_at: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
+        updated_at: new Date().toISOString(),
+        items: [
+          {
+            id: 'item-6',
+            menu_item_id: 101,
+            item_name: 'Pepita Signature Spanish Latte',
+            quantity: 1,
+            price: 135,
+            customizations: {
+              size: '16oz',
+              milk_type: 'oat',
               add_ons: [],
             },
           },
@@ -1004,13 +1060,44 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     ];
   });
 
-  // Customer current session
-  const [customerName, setCustomerName] = useState<string>('Cheska Kimberly');
+  // Customer current guest session with 8-hour localStorage persistence & UUID v4 isolation
+  const [guestSessionId, setGuestSessionId] = useState<string>(() => getOrCreateGuestSessionId());
+  const [customerName, setCustomerNameState] = useState<string>(() => getStoredGuestCustomerName());
+
+  const saveCustomerNameAtCheckout = useCallback((name: string) => {
+    const cleanName = name ? name.trim() : '';
+    setCustomerNameState(cleanName);
+    try {
+      if (cleanName) {
+        localStorage.setItem(STORAGE_KEY_CUSTOMER_NAME, cleanName);
+      } else {
+        localStorage.removeItem(STORAGE_KEY_CUSTOMER_NAME);
+      }
+      localStorage.setItem(STORAGE_KEY_SESSION_TIMESTAMP, Date.now().toString());
+      window.dispatchEvent(new CustomEvent('cafe_pepita_guest_session_change'));
+    } catch (err) {
+      console.warn('Storage save failed:', err);
+    }
+  }, []);
+
+  const setCustomerName = useCallback((name: string) => {
+    saveCustomerNameAtCheckout(name);
+  }, [saveCustomerNameAtCheckout]);
+
   const [orderType, setOrderType] = useState<OrderType>('dine-in');
   const [selectedTableId, setSelectedTableId] = useState<number | null>(null);
   const [deliveryDetails, setDeliveryDetails] = useState<DeliveryDetails | null>(null);
   const [cart, setCart] = useState<OrderItem[]>([]);
   const [activeTrackingToken, setActiveTrackingToken] = useState<string | null>('CP-849201');
+
+  // Order Identifier Priority: Base all customer order lookups strictly on guest_session_id (UUID v4), NEVER on customer_name
+  const customerOrders = useMemo(() => {
+    return orders.filter(
+      (o) =>
+        o.guest_session_id === guestSessionId ||
+        (activeTrackingToken && o.tracking_token === activeTrackingToken)
+    );
+  }, [orders, guestSessionId, activeTrackingToken]);
 
   // Persistence side-effects
   useEffect(() => {
@@ -1562,11 +1649,21 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const isOnlinePaid = paymentMethod === 'online';
 
+    // Disambiguation: Calculate distinct incremental order number (e.g. 1042, 1043...)
+    const existingMaxNumber = orders.reduce((max, ord) => Math.max(max, ord.order_number || 1040), 1040);
+    const nextOrderNumber = existingMaxNumber + 1;
+
+    // Ensure customerName is persisted under key 'cafe_pepita_customer_name' & renews 8h session
+    const effectiveName = customerName.trim() || 'Guest';
+    saveCustomerNameAtCheckout(effectiveName);
+
     const newOrder: Order = {
       id: Date.now(),
+      order_number: nextOrderNumber,
+      guest_session_id: guestSessionId,
       tracking_token: trackingToken,
       table_id: orderType === 'dine-in' ? selectedTableId : null,
-      customer_name: customerName,
+      customer_name: effectiveName,
       order_type: orderType,
       delivery_details: orderType === 'delivery' ? deliveryDetails || undefined : undefined,
       total_amount: subtotal,
@@ -2135,7 +2232,11 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
         orders,
         staffUsers,
         inventoryLogs,
+        guestSessionId,
         customerName,
+        setCustomerName,
+        saveCustomerNameAtCheckout,
+        customerOrders,
         orderType,
         selectedTableId,
         deliveryDetails,

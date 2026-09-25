@@ -12,6 +12,7 @@ interface Screen3MenuCatalogProps {
 export const Screen3MenuCatalog: React.FC<Screen3MenuCatalogProps> = ({ onSelectItem }) => {
   const {
     customerName,
+    guestSessionId,
     orderType,
     menuItems,
     categories,
@@ -19,6 +20,7 @@ export const Screen3MenuCatalog: React.FC<Screen3MenuCatalogProps> = ({ onSelect
     cart,
     setCustomerScreen,
     setActiveTrackingToken,
+    activeTrackingToken,
     navigate,
     checkItemOverallAvailability,
   } = useCafe();
@@ -59,11 +61,11 @@ export const Screen3MenuCatalog: React.FC<Screen3MenuCatalogProps> = ({ onSelect
   const totalCartCount = cart.reduce((acc, curr) => acc + curr.quantity, 0);
   const totalCartAmount = cart.reduce((acc, curr) => acc + curr.price * curr.quantity, 0);
 
-  // Active customer orders in current session
+  // Order Identifier Priority: Base all customer order lookups strictly on unique guest_session_id (UUID v4), NEVER on customer_name
   const customerOrders = orders.filter(
     (o) =>
-      o.customer_name.toLowerCase() === (customerName || '').toLowerCase() ||
-      ['pending', 'preparing', 'ready'].includes(o.order_status)
+      o.guest_session_id === guestSessionId ||
+      (activeTrackingToken && o.tracking_token === activeTrackingToken)
   );
   const activeOrders = customerOrders.filter((o) =>
     ['pending', 'preparing', 'ready'].includes(o.order_status)

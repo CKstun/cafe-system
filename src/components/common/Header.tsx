@@ -33,15 +33,15 @@ export const Header: React.FC<HeaderProps> = ({
   // Derive active header title if not explicitly passed
   const getHeaderTitle = () => {
     if (title) return title;
-    if (currentPath.includes('recipe')) return 'Recipe / BOM Settings';
+    if (currentPath.includes('recipe')) return 'Recipe Settings';
     if (currentPath.includes('inventory')) return 'Raw Inventory Management';
-    if (currentPath.includes('categories')) return 'Category Controls & Ordering';
+    if (currentPath.includes('categories')) return 'Category Management';
     if (currentPath.includes('products') || currentPath.includes('menu')) return 'Menu Catalog Management';
-    if (currentPath.includes('staff')) return 'Staff Accounts CRUD';
+    if (currentPath.includes('staff')) return 'Staff Account Management';
     if (currentPath.includes('analytics') || currentPath.includes('reports') || currentPath.startsWith('/admin')) {
       return 'Sales Reports & Analytics';
     }
-    if (currentPath.startsWith('/staff')) return 'Kitchen Display System';
+    if (currentPath.startsWith('/staff')) return 'Staff Display System';
     if (currentPath === '/cart') return 'Your Cart';
     if (currentPath.startsWith('/order-status') || currentPath === '/tracking') return 'Order Tracking';
     return 'Café Pepita';

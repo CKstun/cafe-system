@@ -26,6 +26,7 @@ export const Screen8LiveTracker: React.FC = () => {
     setCustomerScreen,
     navigate,
     customerName,
+    guestSessionId,
     menuItems,
   } = useCafe();
 
@@ -41,9 +42,11 @@ export const Screen8LiveTracker: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Filter ONLY active in-progress orders (completed, picked_up, and cancelled are removed)
+  // Filter ONLY active in-progress orders strictly based on unique guest_session_id (UUID v4)
+  // NEVER on customer_name so same-name customers are strictly isolated
   const activeOrders = orders.filter(
     (o) =>
+      (o.guest_session_id === guestSessionId || (activeTrackingToken && o.tracking_token === activeTrackingToken)) &&
       o.order_status !== 'completed' &&
       (o.order_status as string) !== 'picked_up' &&
       o.order_status !== 'cancelled'
@@ -132,7 +135,10 @@ export const Screen8LiveTracker: React.FC = () => {
   const isPreparing = currentOrder.order_status === 'preparing';
   const isReady = currentOrder.order_status === 'ready';
 
-  const customerDisplayName = currentOrder.customer_name || customerName || 'Cheska Kimberly';
+  const orderNumber = currentOrder.order_number || (currentOrder.id % 10000);
+  const rawCustomerName = currentOrder.customer_name || customerName || 'Guest';
+  // Prominent disambiguated label across all views (e.g., "Mark — Order #1042")
+  const customerOrderLabel = `${rawCustomerName} — Order #${orderNumber}`;
 
   // Format Dining Type
   const diningTypeDisplay =
@@ -195,11 +201,11 @@ export const Screen8LiveTracker: React.FC = () => {
           <div className="text-right">
             <div className="flex items-center gap-1.5 justify-end">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="font-bold text-xs font-mono text-[#2B231F]">
-                #{currentOrder.tracking_token}
+              <span className="font-bold text-xs text-[#2B231F] max-w-[160px] truncate">
+                {customerOrderLabel}
               </span>
             </div>
-            <p className="text-[10px] text-[#8C7A6B]">Live Order Tracking</p>
+            <p className="text-[10px] font-mono text-[#8C7A6B]">#{currentOrder.tracking_token}</p>
           </div>
         </div>
       </div>
@@ -208,12 +214,18 @@ export const Screen8LiveTracker: React.FC = () => {
         {/* YOUR ORDERS (N) — TAP TO TRACK: */}
         {activeOrders.length > 0 && (
           <div>
-            <p className="text-[10px] uppercase font-bold text-[#8C7A6B] tracking-wider mb-1.5">
-              YOUR ORDERS ({activeOrders.length}) — TAP TO TRACK:
-            </p>
+            <div className="flex items-center justify-between mb-1.5">
+              <p className="text-[10px] uppercase font-bold text-[#8C7A6B] tracking-wider">
+                YOUR ORDERS ({activeOrders.length}) — TAP TO TRACK:
+              </p>
+              <span className="text-[9px] text-[#5C3D2E] font-medium bg-[#F4ECE1] px-2 py-0.5 rounded-full border border-[#EADBCE]">
+                Session ID: {guestSessionId.slice(0, 8)}...
+              </span>
+            </div>
             <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
               {activeOrders.map((ord) => {
                 const isSelected = ord.tracking_token === currentOrder.tracking_token;
+                const ordNum = ord.order_number || (ord.id % 10000);
                 return (
                   <button
                     key={ord.id}
@@ -225,7 +237,8 @@ export const Screen8LiveTracker: React.FC = () => {
                         : 'bg-white text-[#736357] border-[#E8E1D5] hover:border-[#4A3328]'
                     }`}
                   >
-                    <span>#{ord.tracking_token}</span>
+                    <span className="font-bold">Order #{ordNum}</span>
+                    <span className="text-[10px] opacity-75 font-mono">#{ord.tracking_token}</span>
                     <span
                       className={`text-[9px] uppercase px-1.5 py-0.2 rounded-full font-extrabold ${
                         isSelected
@@ -248,7 +261,7 @@ export const Screen8LiveTracker: React.FC = () => {
 
         {/* CARD 1: ORDER STATUS HERO BANNER */}
         <div className="bg-[#F4ECE1] rounded-3xl p-6 border border-[#EADBCE] text-center shadow-xs">
-          <div className="w-12 h-12 mx-auto rounded-full bg-[#4A3328] text-white flex items-center justify-center shadow-sm mb-3">
+          <div className="w-12 h-12 mx-auto rounded-full bg-[#4A3328] text-white flex items-center justify-center shadow-sm mb-2.5">
             {isReady ? (
               <CheckCircle2 className="w-6 h-6" />
             ) : isPreparing ? (
@@ -258,20 +271,24 @@ export const Screen8LiveTracker: React.FC = () => {
             )}
           </div>
 
+          <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[#4A3328] text-white text-[11px] font-mono font-bold shadow-xs mb-2">
+            <span>Order #{orderNumber}</span>
+          </div>
+
           <h2 className="font-serif text-2xl font-bold text-[#2B231F]">
             {isReady ? 'Ready for Pickup!' : isPreparing ? 'Preparing in Kitchen...' : 'Order Placed!'}
           </h2>
 
-          <p className="text-[11px] text-[#8C7A6B] mt-1">Order Tracking Token:</p>
+          <p className="text-[11px] text-[#8C7A6B] mt-1.5">Order Tracking Token:</p>
           <p className="font-mono text-base font-extrabold text-[#2B231F] mt-0.5 tracking-wide">
             #{currentOrder.tracking_token}
           </p>
 
-          {/* Announcement Callout */}
-          <div className="mt-4 p-3 bg-white/80 rounded-2xl border border-[#E2D6C6] flex items-center justify-center gap-2 text-xs text-[#5C3D2E] shadow-2xs">
+          {/* Announcement Callout with Prominent Customer Order Label */}
+          <div className="mt-4 p-3 bg-white/90 rounded-2xl border border-[#E2D6C6] flex items-center justify-center gap-2 text-xs text-[#5C3D2E] shadow-2xs">
             <Volume2 className="w-4 h-4 text-[#5C3D2E] shrink-0" />
             <span>
-              Staff will call: <strong className="font-bold">"{customerDisplayName}"</strong> over the counter once ready.
+              Staff will call: <strong className="font-bold text-[#2B231F]">"{customerOrderLabel}"</strong> over the counter once ready.
             </span>
           </div>
         </div>
@@ -280,7 +297,7 @@ export const Screen8LiveTracker: React.FC = () => {
         <div className="bg-white rounded-2xl border border-[#EAE3D9] p-4 flex justify-between items-center text-xs shadow-2xs">
           <div>
             <p className="text-[10px] text-[#8C7A6B] uppercase font-bold">Customer</p>
-            <p className="font-bold text-[#2B231F] mt-0.5">{customerDisplayName}</p>
+            <p className="font-bold text-[#2B231F] mt-0.5 text-xs">{customerOrderLabel}</p>
           </div>
 
           <div className="text-center">
@@ -364,7 +381,7 @@ export const Screen8LiveTracker: React.FC = () => {
                   Ready for Pickup
                 </h4>
                 <p className="text-[11px] text-[#8C7A6B] mt-0.5">
-                  Cashier will announce "{customerDisplayName}" once items are boxed.
+                  Cashier will announce "{customerOrderLabel}" once items are boxed.
                 </p>
               </div>
             </div>

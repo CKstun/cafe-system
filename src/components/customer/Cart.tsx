@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useCafe } from '../../context/CafeContext';
-import { ChevronLeft, Trash2, Plus, Minus, ShoppingBag, ArrowRight, Coffee } from 'lucide-react';
+import { ChevronLeft, Trash2, Plus, Minus, ShoppingBag, ArrowRight, Coffee, CreditCard } from 'lucide-react';
 import { CafeLogo } from '../common/CafeLogo';
+import { CheckoutModal } from './CheckoutModal';
 
 export const Cart: React.FC = () => {
   const {
@@ -14,6 +15,8 @@ export const Cart: React.FC = () => {
     customerName,
     orderType,
   } = useCafe();
+
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
 
   // Defensive guard against non-array cart state
   const cartItems = Array.isArray(cart) ? cart : [];
@@ -319,17 +322,31 @@ export const Cart: React.FC = () => {
             </div>
           </div>
 
-          {/* Unified CTA Button (Solid rectangle, rounded-2xl, deep coffee brown #5C3D2E, py-3.5) */}
-          <button
-            type="button"
-            onClick={handleProceed}
-            className="w-full py-3.5 px-6 bg-[#5C3D2E] hover:bg-[#4A2F22] active:bg-[#3D261B] text-white font-bold text-sm sm:text-base rounded-2xl shadow-md transition duration-200 flex items-center justify-center gap-2 active:scale-98 cursor-pointer"
-          >
-            <span>{orderType === 'delivery' ? 'Continue to Delivery' : 'Proceed to Checkout'}</span>
-            <ArrowRight className="w-4 h-4 stroke-[2.5]" />
-          </button>
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={() => setIsCheckoutOpen(true)}
+              className="w-full py-3.5 px-6 bg-[#5C3D2E] hover:bg-[#4A2F22] active:bg-[#3D261B] text-white font-bold text-sm sm:text-base rounded-2xl shadow-md transition duration-200 flex items-center justify-center gap-2 active:scale-98 cursor-pointer"
+            >
+              <span>Instant Guest Checkout</span>
+              <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+            </button>
+            <button
+              type="button"
+              onClick={handleProceed}
+              className="w-full py-2.5 px-4 bg-[#F4EFEB] hover:bg-[#EADBCE] text-[#5C3D2E] font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <span>{orderType === 'delivery' ? 'Continue with Delivery Form' : 'Standard Step-by-Step Checkout'}</span>
+            </button>
+          </div>
         </div>
       )}
+
+      {/* Guest Checkout Modal with 8-Hour Persistence & Disambiguation */}
+      <CheckoutModal
+        isOpen={isCheckoutOpen}
+        onClose={() => setIsCheckoutOpen(false)}
+      />
     </div>
   );
 };

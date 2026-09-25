@@ -10,6 +10,7 @@ import {
   Layers,
   AlertTriangle,
   Check,
+  Search,
 } from 'lucide-react';
 
 export const CategoryManager: React.FC = () => {
@@ -20,6 +21,9 @@ export const CategoryManager: React.FC = () => {
     deleteCategory,
     menuItems,
   } = useCafe();
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Create / Edit Category state
   const [showModal, setShowModal] = useState(false);
@@ -39,15 +43,24 @@ export const CategoryManager: React.FC = () => {
       : 'Creating new menu category',
   });
 
-  // Sorted categories strictly by sequence order
-  const sortedCategories = [...categoriesObj].sort(
+  // Filtered & sorted categories
+  const filteredCategories = categoriesObj.filter((cat) => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return true;
+    return (
+      cat.name.toLowerCase().includes(q) ||
+      (cat.description && cat.description.toLowerCase().includes(q))
+    );
+  });
+
+  const sortedCategories = [...filteredCategories].sort(
     (a, b) => (a.sequence_order || 0) - (b.sequence_order || 0)
   );
 
   const handleOpenCreate = () => {
     setEditingCategory(null);
     setName('');
-    setSequenceOrder(sortedCategories.length + 1);
+    setSequenceOrder(categoriesObj.length + 1);
     setDescription('');
     setErrorMessage(null);
     setIsDirty(false);
@@ -131,31 +144,42 @@ export const CategoryManager: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Category Header & Creation Control */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white p-5 rounded-3xl border border-[#2C1D11]/10 shadow-xs">
-        <div>
-          <div className="flex items-center gap-2">
-            <Layers className="w-5 h-5 text-[#4A2E19]" />
-            <h2 className="font-display text-base sm:text-lg font-bold text-[#2C1D11]">
-              Category Controls
-            </h2>
-          </div>
-          <p className="text-xs text-[#2C1D11]/60 mt-0.5">
-            Manage category names, sequence positions, descriptions, and removal.
-          </p>
+      {/* Search Bar & New Category Button Controls */}
+      {/* Search Bar & New Category Button Header Bar */}
+      <div className="flex items-center justify-between gap-4 mb-4">
+        {/* Search Input - Expands to take available space */}
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#2C1D11]/40" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search categories..."
+            className="w-full pl-9 pr-8 py-2 bg-white border border-[#2C1D11]/15 rounded-xl text-xs text-[#2C1D11] placeholder:text-[#2C1D11]/40 focus:outline-none focus:ring-2 focus:ring-[#4A2E19] transition"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-[#2C1D11]/40 hover:text-[#2C1D11] rounded-full transition cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
 
+        {/* New Category Button - Pushed to the right end */}
         <button
           type="button"
           onClick={handleOpenCreate}
-          className="px-4 py-2.5 bg-[#4A2E19] hover:bg-[#382212] text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap"
+          className="px-4 py-2 bg-[#4A2E19] hover:bg-[#382212] text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0"
         >
           <Plus className="w-4 h-4" />
           <span>New Category</span>
         </button>
       </div>
 
-      {/* Raw Category CRUD Table */}
+      {/* Category CRUD Table */}
       <div className="bg-white rounded-3xl border border-[#2C1D11]/10 overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left">
@@ -171,7 +195,9 @@ export const CategoryManager: React.FC = () => {
               {sortedCategories.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="py-8 text-center text-[#2C1D11]/50">
-                    No categories found. Click "New Category" to create one.
+                    {searchQuery
+                      ? `No categories matching "${searchQuery}".`
+                      : 'No categories found. Click "New Category" to create one.'}
                   </td>
                 </tr>
               ) : (
@@ -184,7 +210,7 @@ export const CategoryManager: React.FC = () => {
                       </span>
                     </td>
 
-                    {/* Raw Category Name */}
+                    {/* Category Name */}
                     <td className="py-3.5 px-5">
                       <span className="font-bold text-[#2C1D11]">{cat.name}</span>
                     </td>

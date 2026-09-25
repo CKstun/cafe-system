@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useCafe } from '../../context/CafeContext';
 import {
   ChefHat,
@@ -56,6 +56,20 @@ export const StaffDashboard: React.FC = () => {
   const unverifiedPaymentCount = orders.filter(
     (o) => o.order_status === 'pending'
   ).length;
+
+  // Disambiguation for Same-Name Customers: Count occurrences among active queue orders
+  const duplicateNameCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    orders.forEach((o) => {
+      if (['pending', 'preparing', 'ready'].includes(o.order_status)) {
+        const key = (o.customer_name || '').trim().toLowerCase();
+        if (key) {
+          counts[key] = (counts[key] || 0) + 1;
+        }
+      }
+    });
+    return counts;
+  }, [orders]);
 
   const filteredOrders = orders.filter((order) => {
     // Status filter: 'active' queue includes pending verification, preparing, and ready
@@ -230,6 +244,10 @@ export const StaffDashboard: React.FC = () => {
             const isCash = order.payment_method === 'cash';
             const hasCancelRequest = order.cancellation_requested;
 
+            const orderNum = order.order_number || (order.id % 10000);
+            const isDuplicateName = (duplicateNameCounts[(order.customer_name || '').trim().toLowerCase()] || 0) > 1;
+            const customerOrderLabel = `${order.customer_name} — Order #${orderNum}`;
+
             return (
               <div
                 key={order.id}
@@ -248,7 +266,10 @@ export const StaffDashboard: React.FC = () => {
                   <div className="flex items-center justify-between border-b border-[#F4EFEB] pb-3">
                     <div>
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="font-mono text-sm font-extrabold text-[#5C4033]">
+                        <span className="font-mono text-xs font-black text-[#5C4033] bg-[#EADBCE]/60 px-2 py-0.5 rounded-md border border-[#E6DDD4]">
+                          Order #{orderNum}
+                        </span>
+                        <span className="font-mono text-xs font-bold text-[#8C7A6B]">
                           #{order.tracking_token}
                         </span>
                         {getStatusBadge(order)}
@@ -266,7 +287,13 @@ export const StaffDashboard: React.FC = () => {
                           ? 'Delivery'
                           : 'Take-out'}
                       </span>
-                      <p className="text-xs font-bold text-[#2B231F] mt-1">{order.customer_name}</p>
+                      <p className="text-xs font-bold text-[#2B231F] mt-1">{customerOrderLabel}</p>
+                      {isDuplicateName && (
+                        <div className="mt-1 px-2 py-0.5 bg-amber-100 border border-amber-300 rounded-md text-[10px] font-bold text-amber-900 inline-flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3 text-amber-700" />
+                          <span>Same-Name Customer · Order #{orderNum}</span>
+                        </div>
+                      )}
                       {order.delivery_details && (
                         <p className="text-[10px] text-[#7A6253] mt-0.5 max-w-[200px] truncate text-right">
                           📍 {order.delivery_details.address}
@@ -285,7 +312,7 @@ export const StaffDashboard: React.FC = () => {
                             Order Ready — Call Customer:
                           </span>
                           <span className="text-xs font-extrabold text-[#2B231F]">
-                            "{order.customer_name}" (Token #{order.tracking_token})
+                            "{customerOrderLabel}" (Token #{order.tracking_token})
                           </span>
                         </div>
                       </div>

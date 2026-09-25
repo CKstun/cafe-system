@@ -161,6 +161,8 @@ return new class extends Migration
     {
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('order_number')->nullable()->index();
+            $table->uuid('guest_session_id')->nullable()->index();
             $table->foreignId('table_id')->nullable()->constrained('tables')->nullOnDelete();
             $table->decimal('total_amount', 10, 2);
             $table->enum('payment_method', ['cash', 'online']);

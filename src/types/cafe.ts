@@ -158,6 +158,8 @@ export interface DeliveryDetails {
 
 export interface Order {
   id: number;
+  order_number?: number;
+  guest_session_id?: string;
   tracking_token: string;
   table_id: number | null;
   customer_name: string;
