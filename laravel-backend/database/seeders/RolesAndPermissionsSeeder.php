@@ -48,23 +48,17 @@ class RolesAndPermissionsSeeder extends Seeder
         $adminRole = Role::findOrCreate('admin', 'web');
         $adminRole->syncPermissions(Permission::all());
 
-        // 4. Create Initial Authenticated Users
+        // 4. Create Initial Authenticated Users (Staff & Admin only)
         $adminUser = User::firstOrCreate(
-            ['email' => 'admin@cafepita.ph'],
-            ['name' => 'Maria Santos (Admin)', 'password' => Hash::make('PepitaAdmin2025!'), 'is_active' => true]
+            ['email' => 'admin@cafepita.com],
+            ['name' => 'Maria Santos (Admin)', 'password' => Hash::make('Admin2025'), 'is_active' => true]
         );
         $adminUser->syncRoles(['admin']);
 
         $baristaUser = User::firstOrCreate(
-            ['email' => 'barista@cafepita.ph'],
-            ['name' => 'Juan Dela Cruz (Barista)', 'password' => Hash::make('PepitaBarista2025!'), 'is_active' => true]
+            ['email' => 'barista@cafepita.com'],
+            ['name' => 'Juan Dela Cruz (Barista)', 'password' => Hash::make('Barista2025'), 'is_active' => true]
         );
         $baristaUser->syncRoles(['staff']);
-
-        $guestCustomer = User::firstOrCreate(
-            ['email' => 'customer@cafepita.ph'],
-            ['name' => 'Walk-in Guest Customer', 'password' => Hash::make('Customer123!'), 'is_active' => true]
-        );
-        $guestCustomer->syncRoles(['customer']);
     }
 }
