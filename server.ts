@@ -1,5 +1,5 @@
 import express from 'express';
-import type { Request, Response } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import http from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -14,161 +14,355 @@ const distPath = path.resolve(__dirname, 'dist');
 
 app.use(express.json());
 
-// Health check endpoints for Cloud Run & GCP load balancers
+// ==========================================
+// HEALTH CHECK ENDPOINTS (Cloud Run & GCP)
+// ==========================================
 app.get(['/healthz', '/health', '/_ah/health'], (_req: Request, res: Response) => {
   res.status(200).send('OK');
 });
 
-// API route fallback for report exports if requested
+// ==========================================
+// AUTHENTICATION & SECURITY GUARDS
+// ==========================================
+
+/**
+ * Validates simulated admin credentials via x-auth-user-id header.
+ * Missing or invalid headers return a structured 401 Unauthorized response.
+ */
+const requireAdminAuth = (req: Request, res: Response, next: NextFunction): void => {
+  const authHeader = req.headers['x-auth-user-id'];
+
+  if (!authHeader) {
+    res.status(401).json({
+      success: false,
+      error: 'Unauthorized',
+      message: 'Unauthorized: Missing required x-auth-user-id authentication header.',
+    });
+    return;
+  }
+
+  const userId = Number(authHeader);
+  if (isNaN(userId) || userId <= 0) {
+    res.status(401).json({
+      success: false,
+      error: 'Unauthorized',
+      message: 'Unauthorized: Invalid x-auth-user-id authentication header.',
+    });
+    return;
+  }
+
+  // Attach auth context for downstream route handlers
+  (req as Request & { authUserId: number }).authUserId = userId;
+  next();
+};
+
+// ==========================================
+// REPORTS EXPORT API
+// ==========================================
+
+// GET /api/admin/reports/export
 app.get('/api/admin/reports/export', (req: Request, res: Response) => {
-  const startDate = req.query.start_date || '2024-01-01';
-  const endDate = req.query.end_date || new Date().toISOString().split('T')[0];
-  const csvData = `Date,Order ID,Customer,Items,Total,Status\n${new Date().toISOString().split('T')[0]},ORD-SAMPLE,Walk-in,Spanish Latte (1),160.00,completed\n`;
-  res.setHeader('Content-Type', 'text/csv');
-  res.setHeader('Content-Disposition', `attachment; filename=cafe_pepita_sales_${startDate}_to_${endDate}.csv`);
-  res.status(200).send(csvData);
+  try {
+    const startDate = (req.query.start_date as string) || '2024-01-01';
+    const endDate = (req.query.end_date as string) || new Date().toISOString().split('T')[0];
+
+    const csvData = [
+      'Date,Order ID,Customer,Items,Total,Status',
+      `${new Date().toISOString().split('T')[0]},ORD-SAMPLE,Walk-in,Spanish Latte (1),160.00,completed`,
+    ].join('\n') + '\n';
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=cafe_pepita_sales_${startDate}_to_${endDate}.csv`
+    );
+    res.status(200).send(csvData);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'InternalServerError',
+      message: 'Failed to generate sales report export.',
+    });
+  }
 });
 
-// Single Transactional Menu Item Update (Details + Variants + BOM Recipes + Stock Adjustments)
+// ==========================================
+// MENU ITEMS API
+// ==========================================
+
+// PUT /api/admin/menu-items/:id
 app.put('/api/admin/menu-items/:id', (req: Request, res: Response) => {
-  const { id } = req.params;
-  const payload = req.body;
+  try {
+    const { id } = req.params;
+    const payload = req.body;
 
-  res.status(200).json({
-    success: true,
-    message: 'Menu item, size variants, BOM recipe rules, and stock adjustments updated transactionally.',
-    data: {
-      id: Number(id),
-      ...payload,
-      updated_at: new Date().toISOString(),
-    },
-  });
+    if (!id || isNaN(Number(id))) {
+      res.status(400).json({
+        success: false,
+        error: 'BadRequest',
+        message: 'Invalid or missing menu item ID.',
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Menu item, size variants, BOM recipe rules, and stock adjustments updated transactionally.',
+      data: {
+        id: Number(id),
+        ...payload,
+        updated_at: new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'InternalServerError',
+      message: 'Failed to update menu item.',
+    });
+  }
 });
 
-// Menu Item Deletion (protected by auth/role check in Laravel)
+// DELETE /api/admin/menu-items/:id
 app.delete('/api/admin/menu-items/:id', (req: Request, res: Response) => {
-  const { id } = req.params;
-  res.status(200).json({
-    success: true,
-    message: `Menu item #${id} and associated size variants and BOM recipes deleted successfully.`,
-    deleted_id: Number(id),
-  });
+  try {
+    const { id } = req.params;
+
+    if (!id || isNaN(Number(id))) {
+      res.status(400).json({
+        success: false,
+        error: 'BadRequest',
+        message: 'Invalid or missing menu item ID.',
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Menu item #${id} and associated size variants and BOM recipes deleted successfully.`,
+      deleted_id: Number(id),
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'InternalServerError',
+      message: 'Failed to delete menu item.',
+    });
+  }
 });
 
 // ==========================================
 // STAFF ACCOUNT MANAGEMENT API (LARAVEL 13 REST API)
 // ==========================================
 
-// Create Account: POST /api/admin/users
-app.post('/api/admin/users', (req: Request, res: Response) => {
-  const { name, email, role, password } = req.body;
-  if (!name || !email) {
-    return res.status(422).json({
-      message: 'Validation failed.',
-      errors: {
-        name: !name ? ['The name field is required.'] : [],
-        email: !email ? ['The email field is required.'] : [],
+// Create Account: POST /api/admin/users (Protected by requireAdminAuth)
+app.post('/api/admin/users', requireAdminAuth, (req: Request, res: Response) => {
+  try {
+    const { name, email, role, password } = req.body;
+
+    if (!name || !email) {
+      res.status(422).json({
+        success: false,
+        message: 'Validation failed.',
+        errors: {
+          name: !name ? ['The name field is required.'] : [],
+          email: !email ? ['The email field is required.'] : [],
+        },
+      });
+      return;
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'Staff account registered successfully.',
+      user: {
+        id: Date.now(),
+        name,
+        email,
+        role: role || 'staff',
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       },
     });
-  }
-
-  res.status(201).json({
-    success: true,
-    message: 'Staff account registered successfully.',
-    user: {
-      id: Date.now(),
-      name,
-      email,
-      role: role || 'staff',
-      is_active: true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-  });
-});
-
-// Edit Account & Reset Password: PUT /api/admin/users/:id
-app.put('/api/admin/users/:id', (req: Request, res: Response) => {
-  const { id } = req.params;
-  const { name, email, role, password } = req.body;
-
-  res.status(200).json({
-    success: true,
-    message: password
-      ? `User profile updated and password reset successfully. Active Sanctum tokens revoked.`
-      : `User profile details updated successfully.`,
-    user: {
-      id: Number(id),
-      name,
-      email,
-      role,
-      updated_at: new Date().toISOString(),
-    },
-    tokens_revoked: Boolean(password),
-  });
-});
-
-// Disable / Enable Account Toggle: PATCH /api/admin/users/:id/toggle-status
-app.patch('/api/admin/users/:id/toggle-status', (req: Request, res: Response) => {
-  const { id } = req.params;
-  const { is_active } = req.body;
-
-  // Self-protection guard simulation (admin ID 1)
-  const currentAuthId = req.headers['x-auth-user-id'] ? Number(req.headers['x-auth-user-id']) : null;
-  if (currentAuthId && currentAuthId === Number(id)) {
-    return res.status(403).json({
+  } catch (error) {
+    res.status(500).json({
       success: false,
-      message: 'Forbidden: You cannot deactivate your own currently active administrator account.',
+      error: 'InternalServerError',
+      message: 'Failed to create staff account.',
     });
   }
-
-  res.status(200).json({
-    success: true,
-    message: is_active
-      ? `Account #${id} reactivated.`
-      : `Account #${id} deactivated and active Sanctum tokens revoked.`,
-    is_active: Boolean(is_active),
-  });
 });
 
-// Safe Account Deletion: DELETE /api/admin/users/:id
-app.delete('/api/admin/users/:id', (req: Request, res: Response) => {
-  const { id } = req.params;
+// Edit Account & Reset Password: PUT /api/admin/users/:id (Protected by requireAdminAuth)
+app.put('/api/admin/users/:id', requireAdminAuth, (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { name, email, role, password } = req.body;
 
-  const currentAuthId = req.headers['x-auth-user-id'] ? Number(req.headers['x-auth-user-id']) : null;
-  if (currentAuthId && currentAuthId === Number(id)) {
-    return res.status(403).json({
+    if (!id || isNaN(Number(id))) {
+      res.status(400).json({
+        success: false,
+        error: 'BadRequest',
+        message: 'Invalid or missing user ID.',
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: password
+        ? 'User profile updated and password reset successfully. Active Sanctum tokens revoked.'
+        : 'User profile details updated successfully.',
+      user: {
+        id: Number(id),
+        name,
+        email,
+        role,
+        updated_at: new Date().toISOString(),
+      },
+      tokens_revoked: Boolean(password),
+    });
+  } catch (error) {
+    res.status(500).json({
       success: false,
-      message: 'Forbidden: You cannot delete your own currently active administrator account.',
+      error: 'InternalServerError',
+      message: 'Failed to update staff account.',
     });
   }
-
-  res.status(200).json({
-    success: true,
-    message: `Account #${id} and associated Sanctum tokens permanently deleted.`,
-    deleted_id: Number(id),
-  });
 });
 
-// Login Interceptor: POST /api/login
+// Disable / Enable Account Toggle: PATCH /api/admin/users/:id/toggle-status (Protected by requireAdminAuth)
+app.patch('/api/admin/users/:id/toggle-status', requireAdminAuth, (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { is_active } = req.body;
+
+    if (!id || isNaN(Number(id))) {
+      res.status(400).json({
+        success: false,
+        error: 'BadRequest',
+        message: 'Invalid or missing user ID.',
+      });
+      return;
+    }
+
+    // Self-protection guard simulation
+    const currentAuthId = Number(req.headers['x-auth-user-id']);
+    if (currentAuthId && currentAuthId === Number(id)) {
+      res.status(403).json({
+        success: false,
+        error: 'Forbidden',
+        message: 'Forbidden: You cannot deactivate your own currently active administrator account.',
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: is_active
+        ? `Account #${id} reactivated.`
+        : `Account #${id} deactivated and active Sanctum tokens revoked.`,
+      is_active: Boolean(is_active),
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'InternalServerError',
+      message: 'Failed to toggle staff account status.',
+    });
+  }
+});
+
+// Safe Account Deletion: DELETE /api/admin/users/:id (Protected by requireAdminAuth)
+app.delete('/api/admin/users/:id', requireAdminAuth, (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    if (!id || isNaN(Number(id))) {
+      res.status(400).json({
+        success: false,
+        error: 'BadRequest',
+        message: 'Invalid or missing user ID.',
+      });
+      return;
+    }
+
+    // Self-protection guard simulation
+    const currentAuthId = Number(req.headers['x-auth-user-id']);
+    if (currentAuthId && currentAuthId === Number(id)) {
+      res.status(403).json({
+        success: false,
+        error: 'Forbidden',
+        message: 'Forbidden: You cannot delete your own currently active administrator account.',
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Account #${id} and associated Sanctum tokens permanently deleted.`,
+      deleted_id: Number(id),
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'InternalServerError',
+      message: 'Failed to delete staff account.',
+    });
+  }
+});
+
+// ==========================================
+// AUTHENTICATION: POST /api/login
+// ==========================================
 app.post('/api/login', (req: Request, res: Response) => {
-  const { email, password, is_active } = req.body;
+  try {
+    const { email, password, is_active } = req.body;
 
-  if (is_active === false) {
-    return res.status(403).json({
-      message: 'Your account has been deactivated. Please contact an administrator.',
+    if (!email || !password) {
+      res.status(422).json({
+        success: false,
+        message: 'Validation failed.',
+        errors: {
+          email: !email ? ['The email field is required.'] : [],
+          password: !password ? ['The password field is required.'] : [],
+        },
+      });
+      return;
+    }
+
+    if (is_active === false) {
+      res.status(403).json({
+        success: false,
+        error: 'AccountDeactivated',
+        message: 'Your account has been deactivated. Please contact an administrator.',
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      token: `sanctum_token_${Date.now()}`,
+      user: {
+        id: 1,
+        email,
+        role: email.includes('admin') ? 'admin' : 'staff',
+        is_active: true,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'InternalServerError',
+      message: 'Failed to process login.',
     });
   }
-
-  res.status(200).json({
-    token: `sanctum_token_${Date.now()}`,
-    user: {
-      email,
-      role: 'staff',
-      is_active: true,
-    },
-  });
 });
+
+// ==========================================
+// STATIC ASSET SERVING & SPA FALLBACK
+// ==========================================
 
 // Ensure dist directory is built if not already present
 if (!fs.existsSync(distPath) || !fs.existsSync(path.join(distPath, 'index.html'))) {
@@ -208,6 +402,9 @@ if (fs.existsSync(distPath) && fs.existsSync(path.join(distPath, 'index.html')))
   });
 }
 
+// ==========================================
+// SERVER INITIALIZATION (PORT 3000 & INGRESS)
+// ==========================================
 const primaryPort = 3000;
 const envPort = process.env.PORT ? parseInt(process.env.PORT, 10) : null;
 

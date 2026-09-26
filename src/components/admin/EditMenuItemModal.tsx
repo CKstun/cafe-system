@@ -78,7 +78,8 @@ export const EditMenuItemModal: React.FC<EditMenuItemModalProps> = ({
   const [variants, setVariants] = useState<VariantDraft[]>([]);
   const [newSizeName, setNewSizeName] = useState('');
   const [newSizePrice, setNewSizePrice] = useState<number>(120);
-  const [newSizeOatPrice, setNewSizeOatPrice] = useState<number>(40);
+  // Full price charged when oat milk is selected — not a standalone add-on amount
+  const [newSizeOatPrice, setNewSizeOatPrice] = useState<number>(160);
 
   // Tab 3: BOM Recipe Mapping State
   const [selectedBomSize, setSelectedBomSize] = useState<string>('16oz');
@@ -124,14 +125,16 @@ export const EditMenuItemModal: React.FC<EditMenuItemModalProps> = ({
           item.available_sizes.map((s) => ({
             size: s.size,
             price: s.price,
-            oat_price: s.oat_price ?? 40,
+            // oat_price is a full price, not a bare add-on amount — fall back to the
+            // regular price (i.e. no upcharge) rather than a disconnected flat number.
+            oat_price: s.oat_price ?? s.price,
           }))
         );
         setSelectedBomSize(item.available_sizes[0].size);
       } else {
         const defaultSizes: VariantDraft[] = [
-          { size: '16oz', price: item.price || 120, oat_price: 40 },
-          { size: '22oz', price: (item.price || 120) + 20, oat_price: 40 },
+          { size: '16oz', price: item.price || 120, oat_price: (item.price || 120) + 40 },
+          { size: '22oz', price: (item.price || 120) + 20, oat_price: (item.price || 120) + 20 + 40 },
         ];
         setVariants(defaultSizes);
         setSelectedBomSize('16oz');
@@ -156,8 +159,8 @@ export const EditMenuItemModal: React.FC<EditMenuItemModalProps> = ({
       setIsAvailable(true);
       setImagePath('');
       const defaultSizes: VariantDraft[] = [
-        { size: '16oz', price: 120, oat_price: 40 },
-        { size: '22oz', price: 140, oat_price: 40 },
+        { size: '16oz', price: 120, oat_price: 160 },
+        { size: '22oz', price: 140, oat_price: 180 },
       ];
       setVariants(defaultSizes);
       setSelectedBomSize('16oz');
@@ -224,11 +227,18 @@ export const EditMenuItemModal: React.FC<EditMenuItemModalProps> = ({
     }
     const updated = [
       ...variants,
-      { size: trimmed, price: Number(newSizePrice) || basePrice, oat_price: Number(newSizeOatPrice) || 40 },
+      {
+        size: trimmed,
+        price: Number(newSizePrice) || basePrice,
+        oat_price: Number(newSizeOatPrice) || (Number(newSizePrice) || basePrice) + 40,
+      },
     ];
     setVariants(updated);
     setNewSizeName('');
     setNewSizePrice(basePrice + 20);
+    // Default the oat price field to a full price roughly ₱40 above the regular price,
+    // not a standalone ₱40 — oat_price is the TOTAL charged when oat milk is selected.
+    setNewSizeOatPrice(basePrice + 20 + 40);
     setIsDirty(true);
   };
 
@@ -248,6 +258,16 @@ export const EditMenuItemModal: React.FC<EditMenuItemModalProps> = ({
   const handleUpdateVariantPrice = (sizeName: string, newPrice: number) => {
     setVariants((prev) =>
       prev.map((v) => (v.size === sizeName ? { ...v, price: newPrice } : v))
+    );
+    setIsDirty(true);
+  };
+
+  // oat_price is the FULL price charged when oat milk is selected for this size
+  // (checkout uses it as a straight replacement, not an add-on) — must stay editable
+  // per-row so admins aren't stuck with whatever default was set when the size was added.
+  const handleUpdateVariantOatPrice = (sizeName: string, newOatPrice: number) => {
+    setVariants((prev) =>
+      prev.map((v) => (v.size === sizeName ? { ...v, oat_price: newOatPrice } : v))
     );
     setIsDirty(true);
   };
@@ -680,11 +700,13 @@ export const EditMenuItemModal: React.FC<EditMenuItemModalProps> = ({
                 <div>
                   <h4 className="font-bold text-xs text-[#2C1D11]">Configured Size Variants</h4>
                   <p className="text-[11px] text-[#2C1D11]/60">
-                    Define custom pricing per cup size. Each variant can link to distinct BOM raw inventory rules.
+                    Define custom pricing per cup size. "Oat Milk Price" is the full price charged when oat milk is
+                    selected for that size (not an add-on surcharge) — each variant can also link to distinct BOM raw
+                    inventory rules.
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <input
                     type="text"
                     value={newSizeName}
@@ -697,7 +719,16 @@ export const EditMenuItemModal: React.FC<EditMenuItemModalProps> = ({
                     value={newSizePrice}
                     onChange={(e) => setNewSizePrice(Number(e.target.value))}
                     placeholder="₱ Price"
+                    title="Regular milk price for this size"
                     className="w-24 px-3 py-1.5 bg-[#F4EFEB] border border-[#2C1D11]/15 rounded-xl text-xs font-mono font-bold"
+                  />
+                  <input
+                    type="number"
+                    value={newSizeOatPrice}
+                    onChange={(e) => setNewSizeOatPrice(Number(e.target.value))}
+                    placeholder="₱ Oat Price"
+                    title="Full price for this size when oat milk is selected"
+                    className="w-28 px-3 py-1.5 bg-[#F4EFEB] border border-[#2C1D11]/15 rounded-xl text-xs font-mono font-bold"
                   />
                   <button
                     type="button"
@@ -716,8 +747,8 @@ export const EditMenuItemModal: React.FC<EditMenuItemModalProps> = ({
                   <thead>
                     <tr className="bg-[#F4EFEB] border-b border-[#2C1D11]/10 text-[#4A2E19] uppercase text-[10px] font-bold">
                       <th className="py-2.5 px-4">Size Name</th>
-                      <th className="py-2.5 px-4">Customer Price (₱)</th>
-                      <th className="py-2.5 px-4">Oat Milk Add-on Price (₱)</th>
+                      <th className="py-2.5 px-4">Regular Milk Price (₱)</th>
+                      <th className="py-2.5 px-4">Oat Milk Price (₱)</th>
                       <th className="py-2.5 px-4 text-center">BOM Linked Items</th>
                       <th className="py-2.5 px-4 text-right">Actions</th>
                     </tr>
@@ -747,9 +778,17 @@ export const EditMenuItemModal: React.FC<EditMenuItemModalProps> = ({
                             </div>
                           </td>
                           <td className="py-3 px-4">
-                            <span className="font-mono text-xs text-[#2C1D11]/70">
-                              +₱{v.oat_price ?? 40}.00
-                            </span>
+                            <div className="flex items-center gap-1.5 font-mono">
+                              <span className="text-[#4A2E19] font-bold">₱</span>
+                              <input
+                                type="number"
+                                min="0"
+                                value={v.oat_price ?? v.price}
+                                onChange={(e) => handleUpdateVariantOatPrice(v.size, Number(e.target.value))}
+                                title="Full price charged when oat milk is selected for this size"
+                                className="w-24 px-2.5 py-1 bg-[#F4EFEB] border border-[#2C1D11]/15 rounded-lg text-xs font-bold text-[#4A2E19]"
+                              />
+                            </div>
                           </td>
                           <td className="py-3 px-4 text-center">
                             <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[#EFE8E1] text-[#4A2E19]">

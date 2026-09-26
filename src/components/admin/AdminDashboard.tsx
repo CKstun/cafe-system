@@ -172,6 +172,27 @@ export const AdminDashboard: React.FC = () => {
     });
   }, [orders, dateRange, startDate, endDate]);
 
+  const customStartDate = startDate;
+  const effectiveStart = useMemo(() => {
+    if (dateRange === 'today') {
+      return new Date().toISOString().split('T')[0];
+    }
+    if (dateRange === '7days') {
+      return new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+    }
+    if (dateRange === '30days') {
+      return new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
+    }
+    return customStartDate || new Date().toISOString().split('T')[0];
+  }, [dateRange, customStartDate]);
+
+  const effectiveEnd = useMemo(() => {
+    if (dateRange === 'custom') {
+      return endDate || new Date().toISOString().split('T')[0];
+    }
+    return new Date().toISOString().split('T')[0];
+  }, [dateRange, endDate]);
+
   /**
    * Export Sales Report:
    * Triggers backend export endpoint `/api/admin/reports/export?start_date=...&end_date=...`
@@ -180,23 +201,6 @@ export const AdminDashboard: React.FC = () => {
   const handleExportReport = async () => {
     setIsExporting(true);
     setExportNotice(null);
-
-    // Compute effective dates
-    const effectiveStart =
-      dateRange === 'today'
-        ? new Date().toISOString().split('T')[0]
-        : dateRange === '7days'
-        ? new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]
-        : dateRange === '30days'
-        ? new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0]
-        : dateRange === 'custom'
-        ? startDate
-        : '2024-01-01';
-
-    const effectiveEnd =
-      dateRange === 'custom'
-        ? endDate
-        : new Date().toISOString().split('T')[0];
 
     const exportUrl = `/api/admin/reports/export?start_date=${encodeURIComponent(
       effectiveStart
