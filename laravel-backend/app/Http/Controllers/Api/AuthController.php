@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
@@ -18,15 +18,15 @@ class AuthController extends Controller
     public function login(Request $request): JsonResponse
     {
         $request->validate([
-            'email' => 'required|email',
+            'email' => 'required|string',
+            'password' => 'required|string',
         ]);
 
-        $email = strtolower(trim($request->email));
-        $user = User::where('email', $email)->first();
+        $user = User::where('email', strtolower($request->email))->first();
 
-        if (!$user) {
+        if (!$user || !Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
-                'email' => ['No account found with this email address.'],
+                'email' => ['The provided credentials do not match our records.'],
             ]);
         }
 
@@ -37,16 +37,8 @@ class AuthController extends Controller
             ], 403);
         }
 
-        // Detect user role (supports both direct attribute and Spatie method)
-        $userRole = $user->role ?? (method_exists($user, 'hasRole') && $user->hasRole('admin') ? 'admin' : 'staff');
-
-        // Assign abilities based on role
-        $abilities = $userRole === 'admin' ? ['role:admin', 'role:staff'] : ['role:staff'];
-
-        // Optional: Revoke existing tokens for a clean session state
-        $user->tokens()->delete();
-
-        // Issue new Sanctum token with role abilities
+        // Issue Sanctum token with role ability
+        $abilities = $user->role === 'admin' ? ['role:admin', 'role:staff'] : ['role:staff'];
         $token = $user->createToken('cafepita_auth_token', $abilities)->plainTextToken;
 
         return response()->json([
@@ -56,8 +48,8 @@ class AuthController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
-                'role' => $userRole,
-                'is_active' => (bool) $user->is_active,
+                'role' => $user->role,
+                'is_active' => $user->is_active,
             ],
             'abilities' => $abilities,
         ]);
@@ -70,9 +62,7 @@ class AuthController extends Controller
      */
     public function logout(Request $request): JsonResponse
     {
-        if ($request->user() && $request->user()->currentAccessToken()) {
-            $request->user()->currentAccessToken()->delete();
-        }
+        $request->user()->currentAccessToken()->delete();
 
         return response()->json([
             'success' => true,
