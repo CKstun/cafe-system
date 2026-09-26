@@ -51,13 +51,23 @@ class RolesAndPermissionsSeeder extends Seeder
         // 4. Create or Update Initial Authenticated Users (Staff & Admin only)
         $adminUser = User::updateOrCreate(
             ['email' => 'admin@cafepita.com'],
-            ['name' => 'Maria Santos (Admin)', 'password' => Hash::make('Admin2025'), 'is_active' => true]
+            [
+                'name' => 'Maria Santos (Admin)',
+                'password' => Hash::make('Admin2025'),
+                'role' => 'admin',
+                'is_active' => true,
+            ]
         );
         $adminUser->syncRoles(['admin']);
 
         $baristaUser = User::updateOrCreate(
             ['email' => 'barista@cafepita.com'],
-            ['name' => 'Juan Dela Cruz (Barista)', 'password' => Hash::make('Barista2025'), 'is_active' => true]
+            [
+                'name' => 'Juan Dela Cruz (Barista)',
+                'password' => Hash::make('Barista2025'),
+                'role' => 'staff',
+                'is_active' => true,
+            ]
         );
         $baristaUser->syncRoles(['staff']);
     }
