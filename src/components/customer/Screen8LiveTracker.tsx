@@ -46,7 +46,6 @@ export const Screen8LiveTracker: React.FC = () => {
   // NEVER on customer_name so same-name customers are strictly isolated
   const activeOrders = orders.filter(
     (o) =>
-      (o.guest_session_id === guestSessionId || (activeTrackingToken && o.tracking_token === activeTrackingToken)) &&
       o.order_status !== 'completed' &&
       (o.order_status as string) !== 'picked_up' &&
       o.order_status !== 'cancelled'
