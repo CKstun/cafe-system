@@ -57,10 +57,36 @@ export const Screen4ItemModal: React.FC<Screen4ItemModalProps> = ({ item, onClos
           !item.name.toLowerCase().includes('americano')))
   );
 
+  const chargeableAddOns = useMemo(
+    () =>
+      addOns.filter(
+        (addon) =>
+          addon.name.trim().toLowerCase() !==
+          'oat milk sub'
+      ),
+    [addOns]
+  );
+
   const toggleAddOn = (id: number) => {
     if (isRefresher) return;
+
+    const selectedAddOn = addOns.find(
+      (addon) => addon.id === id
+    );
+
+    // Oat milk is priced through the milk option/final variant price.
+    // It must not be selected or charged as a separate add-on.
+    if (
+      selectedAddOn?.name.trim().toLowerCase() ===
+      'oat milk sub'
+    ) {
+      return;
+    }
+
     setSelectedAddOnIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+      prev.includes(id)
+        ? prev.filter((item) => item !== id)
+        : [...prev, id]
     );
   };
 
@@ -288,13 +314,13 @@ export const Screen4ItemModal: React.FC<Screen4ItemModalProps> = ({ item, onClos
           )}
 
           {/* ADD-ONS Selection (Capsule pill size matching mockup ending in 950 - not shown for Refreshers) */}
-          {isBeverage && !isRefresher && addOns.length > 0 && (
+          {isBeverage && !isRefresher && chargeableAddOns.length > 0 && (
             <div>
               <label className="block text-[11px] font-bold uppercase tracking-wider text-[#7C6656] mb-2">
                 ADD-ONS
               </label>
               <div className="flex flex-wrap gap-2">
-                {addOns.map((addon) => {
+                {chargeableAddOns.map((addon) => {
                   const isSelected = selectedAddOnIds.includes(addon.id);
                   return (
                     <button

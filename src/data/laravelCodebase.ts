@@ -3161,7 +3161,7 @@ class MenuItemController extends Controller
                         ],
                         [
                             'price' => $v['price'],
-                            'oat_price' => $v['oat_price'] ?? 40.00,
+                            'oat_price' => $v['oat_price'] ?? $v['price']
                         ]
                     );
                 }

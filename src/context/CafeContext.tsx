@@ -2092,8 +2092,17 @@ export const CafeProvider: React.FC<{
         item.sub_oat_price;
     }
 
+    // Oat milk pricing is already represented by `unitPrice` as the
+    // full/final price for the selected size. The old "Oat Milk Sub"
+    // add-on must never be charged on top of that price.
+    const chargeableAddOns = selectedAddOns.filter(
+      (addon) =>
+        addon.name.trim().toLowerCase() !==
+        'oat milk sub'
+    );
+
     const addOnsCost =
-      selectedAddOns.reduce(
+      chargeableAddOns.reduce(
         (acc, curr) =>
           acc + curr.price,
         0
@@ -2125,7 +2134,7 @@ export const CafeProvider: React.FC<{
         flavor,
         milk_type: milk,
         add_ons:
-          selectedAddOns.map(
+          chargeableAddOns.map(
             (a) => ({
               id: a.id,
               name: a.name,

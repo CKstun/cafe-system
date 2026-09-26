@@ -78,8 +78,8 @@ export const EditMenuItemModal: React.FC<EditMenuItemModalProps> = ({
   const [variants, setVariants] = useState<VariantDraft[]>([]);
   const [newSizeName, setNewSizeName] = useState('');
   const [newSizePrice, setNewSizePrice] = useState<number>(120);
-  // Full price charged when oat milk is selected — not a standalone add-on amount
-  const [newSizeOatPrice, setNewSizeOatPrice] = useState<number>(160);
+  // Full/final price charged when oat milk is selected — never a standalone surcharge
+  const [newSizeOatPrice, setNewSizeOatPrice] = useState<number>(120);
 
   // Tab 3: BOM Recipe Mapping State
   const [selectedBomSize, setSelectedBomSize] = useState<string>('16oz');
@@ -133,8 +133,16 @@ export const EditMenuItemModal: React.FC<EditMenuItemModalProps> = ({
         setSelectedBomSize(item.available_sizes[0].size);
       } else {
         const defaultSizes: VariantDraft[] = [
-          { size: '16oz', price: item.price || 120, oat_price: (item.price || 120) + 40 },
-          { size: '22oz', price: (item.price || 120) + 20, oat_price: (item.price || 120) + 20 + 40 },
+          {
+            size: '16oz',
+            price: item.price || 120,
+            oat_price: item.price || 120,
+          },
+          {
+            size: '22oz',
+            price: (item.price || 120) + 20,
+            oat_price: (item.price || 120) + 20,
+          },
         ];
         setVariants(defaultSizes);
         setSelectedBomSize('16oz');
@@ -159,8 +167,8 @@ export const EditMenuItemModal: React.FC<EditMenuItemModalProps> = ({
       setIsAvailable(true);
       setImagePath('');
       const defaultSizes: VariantDraft[] = [
-        { size: '16oz', price: 120, oat_price: 160 },
-        { size: '22oz', price: 140, oat_price: 180 },
+        { size: '16oz', price: 120, oat_price: 120 },
+        { size: '22oz', price: 140, oat_price: 140 },
       ];
       setVariants(defaultSizes);
       setSelectedBomSize('16oz');
@@ -230,15 +238,15 @@ export const EditMenuItemModal: React.FC<EditMenuItemModalProps> = ({
       {
         size: trimmed,
         price: Number(newSizePrice) || basePrice,
-        oat_price: Number(newSizeOatPrice) || (Number(newSizePrice) || basePrice) + 40,
+        oat_price: Number(newSizeOatPrice) || Number(newSizePrice) || basePrice,
       },
     ];
     setVariants(updated);
     setNewSizeName('');
     setNewSizePrice(basePrice + 20);
-    // Default the oat price field to a full price roughly ₱40 above the regular price,
-    // not a standalone ₱40 — oat_price is the TOTAL charged when oat milk is selected.
-    setNewSizeOatPrice(basePrice + 20 + 40);
+    // Oat price is a full/final price, not a ₱40 surcharge.
+    // Default the next oat price to the next size's regular price.
+    setNewSizeOatPrice(basePrice + 20);
     setIsDirty(true);
   };
 
@@ -724,10 +732,11 @@ export const EditMenuItemModal: React.FC<EditMenuItemModalProps> = ({
                   />
                   <input
                     type="number"
+                    min="0"
                     value={newSizeOatPrice}
                     onChange={(e) => setNewSizeOatPrice(Number(e.target.value))}
-                    placeholder="₱ Oat Price"
-                    title="Full price for this size when oat milk is selected"
+                    placeholder="₱ Oat Final"
+                    title="Full/final price charged for this size when oat milk is selected"
                     className="w-28 px-3 py-1.5 bg-[#F4EFEB] border border-[#2C1D11]/15 rounded-xl text-xs font-mono font-bold"
                   />
                   <button
@@ -748,7 +757,7 @@ export const EditMenuItemModal: React.FC<EditMenuItemModalProps> = ({
                     <tr className="bg-[#F4EFEB] border-b border-[#2C1D11]/10 text-[#4A2E19] uppercase text-[10px] font-bold">
                       <th className="py-2.5 px-4">Size Name</th>
                       <th className="py-2.5 px-4">Regular Milk Price (₱)</th>
-                      <th className="py-2.5 px-4">Oat Milk Price (₱)</th>
+                      <th className="py-2.5 px-4">Oat Milk Final Price (₱)</th>
                       <th className="py-2.5 px-4 text-center">BOM Linked Items</th>
                       <th className="py-2.5 px-4 text-right">Actions</th>
                     </tr>
