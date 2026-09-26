@@ -1,21 +1,13 @@
-# nixpacks.toml for Railway Laravel 11 Deployment
 [phases.setup]
-nixPkgs = ["php83", "php83Extensions.pdo_mysql", "php83Extensions.mbstring", "php83Extensions.bcmath", "php83Extensions.tokenizer", "php83Extensions.xml", "php83Extensions.curl", "composer", "nodejs_20", "nginx"]
-
-[phases.install]
-cmds = [
-    "composer install --no-dev --optimize-autoloader --no-interaction",
-    "npm ci",
-    "npm run build"
-]
+nixPkgs = ["php83", "php83Extensions.pdo_mysql", "php83Extensions.mysqli", "php83Extensions.bcmath", "php83Extensions.ctype", "php83Extensions.fileinfo", "php83Extensions.json", "php83Extensions.mbstring", "php83Extensions.openssl", "php83Extensions.tokenizer", "php83Extensions.xml", "composer"]
 
 [phases.build]
 cmds = [
+    "composer install --no-dev --optimize-autoloader --no-interaction",
     "php artisan config:cache",
     "php artisan route:cache",
-    "php artisan view:cache",
-    "php artisan storage:link"
+    "php artisan view:cache"
 ]
 
 [start]
-cmd = "php artisan migrate --force && php artisan db:seed --force && nginx -g 'daemon off;' & php-fpm -F -O"
+cmd = "php artisan migrate --force && php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=${PORT:-8080}"
