@@ -23,40 +23,29 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // STAFF ROUTE
   // ============================================================
 
-  if (sessionType === 'staff') {
-    /*
-     * Staff routes require a staff session.
-     *
-     * If an admin session is active instead, deny access.
-     * This prevents an admin session from automatically becoming
-     * a staff session.
-     */
-    if (!hasStaffSession || hasAdminSession) {
-      navigate('/staff/login', { force: true });
+  React.useEffect(() => {
+    if (sessionType === 'staff') {
+      if (!hasStaffSession || hasAdminSession) {
+        navigate('/staff/login', { force: true });
+      }
+    } else if (sessionType === 'admin') {
+      if (!hasAdminSession || hasStaffSession) {
+        navigate('/admin/login', { force: true });
+      }
+    }
+  }, [sessionType, hasStaffSession, hasAdminSession, navigate]);
 
+  if (sessionType === 'staff') {
+    if (!hasStaffSession || hasAdminSession) {
       return null;
     }
-
     return <>{children}</>;
   }
 
-  // ============================================================
-  // ADMIN ROUTE
-  // ============================================================
-
   if (sessionType === 'admin') {
-    /*
-     * Admin routes require an admin session.
-     *
-     * If a staff session is active instead, deny access.
-     * This prevents a staff session from accessing admin routes.
-     */
     if (!hasAdminSession || hasStaffSession) {
-      navigate('/admin/login', { force: true });
-
       return null;
     }
-
     return <>{children}</>;
   }
 
