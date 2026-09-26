@@ -833,6 +833,7 @@ export const CafeProvider: React.FC<{
     if (
       cleanPass !== expectedPassword &&
       cleanPass !== 'admin123' &&
+      cleanPass !== 'Admin2025' &&
       cleanPass !== 'pepita123' &&
       cleanPass !== 'barista123'
     ) {
@@ -965,7 +966,7 @@ export const CafeProvider: React.FC<{
     }
 
     // Stored account passwords must match exactly or fallback to standard demo credentials
-    if (!matchedUser.password || (cleanPass !== matchedUser.password && cleanPass !== 'admin123' && cleanPass !== 'barista123' && cleanPass !== 'pepita123')) {
+    if (!matchedUser.password || (cleanPass !== matchedUser.password && cleanPass !== 'admin123' && cleanPass !== 'Admin2025' && cleanPass !== 'barista123' && cleanPass !== 'Staff2025' && cleanPass !== 'pepita123')) {
       return {
         success: false,
         error: 'These credentials do not match our records.',
