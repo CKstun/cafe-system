@@ -22,7 +22,7 @@ class MenuSeeder extends Seeder
             ['email' => 'admin@cafepita.com'],
             [
                 'name' => 'Café Pepita Administrator',
-                'password' => Hash::make('admin123'),
+                'password' => Hash::make('Admin2025'),
                 'role' => 'admin',
                 'is_active' => true,
             ]
@@ -32,7 +32,7 @@ class MenuSeeder extends Seeder
             ['email' => 'staff@cafepita.com'],
             [
                 'name' => 'Barista Staff',
-                'password' => Hash::make('staff123'),
+                'password' => Hash::make('Staff2025'),
                 'role' => 'staff',
                 'is_active' => true,
             ]

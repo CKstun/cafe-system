@@ -61,10 +61,10 @@ class RolesAndPermissionsSeeder extends Seeder
         $adminUser->syncRoles(['admin']);
 
         $baristaUser = User::updateOrCreate(
-            ['email' => 'barista@cafepita.com'],
+            ['email' => 'staff@cafepita.com'],
             [
                 'name' => 'Juan Dela Cruz (Barista)',
-                'password' => bcrypt('Barista2025'),
+                'password' => bcrypt('Staff2025'),
                 'role' => 'staff',
                 'is_active' => true,
             ]
