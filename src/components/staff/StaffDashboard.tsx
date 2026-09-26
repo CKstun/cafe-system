@@ -48,7 +48,7 @@ export const StaffDashboard: React.FC = () => {
     when: inspectingOrder !== null,
     role: 'staff',
     reason: inspectingOrder
-      ? `Payment verification modal open for Order #${inspectingOrder.tracking_token}`
+      ? `Payment verification modal open for Order #${inspectingOrder.order_number || inspectingOrder.tracking_token}`
       : 'Order verification in progress',
   });
 
@@ -57,23 +57,27 @@ export const StaffDashboard: React.FC = () => {
     (o) => o.order_status === 'pending'
   ).length;
 
-  const filteredOrders = orders.filter((order) => {
-    // Status filter: 'active' queue includes pending verification, preparing, and ready
-    let matchesTab = true;
-    if (activeTab === 'active') {
-      matchesTab = ['pending', 'preparing', 'ready'].includes(order.order_status);
-    } else if (activeTab !== 'all') {
-      matchesTab = order.order_status === activeTab;
-    }
+  const filteredOrders = orders
+    .filter((order) => {
+      // Status filter: 'active' queue includes pending verification, preparing, and ready
+      let matchesTab = true;
+      if (activeTab === 'active') {
+        matchesTab = ['pending', 'preparing', 'ready'].includes(order.order_status);
+      } else if (activeTab !== 'all') {
+        matchesTab = order.order_status === activeTab;
+      }
 
-    // Search query
-    const matchesSearch =
-      order.tracking_token.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (order.delivery_details?.contact_number || '').includes(searchQuery);
+      // Search query matches order number, token, customer name, or contact number
+      const matchesSearch =
+        (order.order_number ? String(order.order_number).includes(searchQuery) : false) ||
+        order.tracking_token.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        order.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (order.delivery_details?.contact_number || '').includes(searchQuery);
 
-    return matchesTab && matchesSearch;
-  });
+      return matchesTab && matchesSearch;
+    })
+    // Oldest orders first, so staff work through the queue top-down
+    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
   const getStatusBadge = (order: Order) => {
     if (order.order_status === 'pending') {
@@ -132,7 +136,7 @@ export const StaffDashboard: React.FC = () => {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search token, customer..."
+                placeholder="Search order #, customer..."
                 className="w-full min-h-[38px] pl-8 pr-3 py-1.5 bg-white border border-[#E6DDD4] rounded-xl text-xs text-[#2B231F] focus:outline-none focus:ring-2 focus:ring-[#5C4033]"
               />
               <Search className="w-3.5 h-3.5 text-[#8C7A6B] absolute left-2.5 top-2.5" />
@@ -174,44 +178,58 @@ export const StaffDashboard: React.FC = () => {
 
       {/* Main Content Area */}
       <main className="max-w-7xl mx-auto px-4 sm:px-8 pt-6">
-        {/* Clean Filter Navigation Tabs */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-3 border-b border-[#EFE8E1]">
-          {[
-            {
-              id: 'active',
-              label: 'Active Queue',
-              count: unverifiedPaymentCount > 0 ? unverifiedPaymentCount : undefined,
-              countLabel: 'unverified',
-            },
-            { id: 'preparing', label: 'Preparing' },
-            { id: 'ready', label: 'Ready for Claim' },
-            { id: 'completed', label: 'Completed' },
-            { id: 'all', label: 'All Orders' },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`min-h-[38px] px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition flex items-center gap-1.5 cursor-pointer ${
-                activeTab === tab.id
-                  ? 'bg-[#5C4033] text-[#FDFBF7] shadow-xs'
-                  : 'bg-[#F4EFEB] text-[#736357] hover:bg-[#E6DDD4]'
-              }`}
-            >
-              <span>{tab.label}</span>
-              {typeof tab.count === 'number' && tab.count > 0 && (
-                <span
-                  title={`${tab.count} unverified payment order(s)`}
-                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                    activeTab === tab.id
-                      ? 'bg-amber-400 text-stone-900'
-                      : 'bg-amber-200 text-amber-900'
-                  }`}
-                >
-                  {tab.count}
-                </span>
-              )}
-            </button>
-          ))}
+        {/* Navigation: Active Queue as the default "home" state, filter tabs alongside */}
+        <div className="flex items-center gap-3 overflow-x-auto pb-3 border-b border-[#EFE8E1]">
+          {/* Active Queue: default landing view, visually distinct from the filter chips */}
+          <button
+            onClick={() => setActiveTab('active')}
+            className={`min-h-[38px] px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition flex items-center gap-1.5 cursor-pointer border-2 ${
+              activeTab === 'active'
+                ? 'bg-[#5C4033] text-[#FDFBF7] border-[#5C4033] shadow-sm'
+                : 'bg-white text-[#5C4033] border-[#5C4033]/30 hover:border-[#5C4033]'
+            }`}
+            title="Default view: pending, preparing, and ready orders"
+          >
+            <ChefHat className="w-3.5 h-3.5" />
+            <span>Active Queue</span>
+            {unverifiedPaymentCount > 0 && (
+              <span
+                title={`${unverifiedPaymentCount} unverified payment order(s)`}
+                className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                  activeTab === 'active'
+                    ? 'bg-amber-400 text-stone-900'
+                    : 'bg-amber-200 text-amber-900'
+                }`}
+              >
+                {unverifiedPaymentCount}
+              </span>
+            )}
+          </button>
+
+          {/* Divider between the default view and the filter chips */}
+          <div className="w-px h-6 bg-[#EFE8E1] shrink-0" />
+
+          {/* Filter Chips */}
+          <div className="flex items-center gap-2">
+            {[
+              { id: 'preparing', label: 'Preparing' },
+              { id: 'ready', label: 'Ready for Claim' },
+              { id: 'completed', label: 'Completed' },
+              { id: 'all', label: 'All Orders' },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`min-h-[38px] px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition flex items-center gap-1.5 cursor-pointer ${
+                  activeTab === tab.id
+                    ? 'bg-[#5C4033] text-[#FDFBF7] shadow-xs'
+                    : 'bg-[#F4EFEB] text-[#736357] hover:bg-[#E6DDD4]'
+                }`}
+              >
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Orders Card Grid */}
@@ -241,7 +259,7 @@ export const StaffDashboard: React.FC = () => {
                     <div>
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="font-mono text-sm font-extrabold text-[#5C4033]">
-                          #{order.tracking_token}
+                          #{order.order_number || order.tracking_token}
                         </span>
                         {getStatusBadge(order)}
                       </div>
@@ -269,21 +287,9 @@ export const StaffDashboard: React.FC = () => {
 
                   {/* Ready - Name Calling Notification for Barista */}
                   {order.order_status === 'ready' && (
-                    <div className="mt-3 p-3 bg-emerald-50 border border-emerald-300 rounded-2xl flex items-center justify-between animate-pulse">
-                      <div className="flex items-center gap-2">
-                        <Volume2 className="w-4 h-4 text-emerald-800 shrink-0" />
-                        <div>
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 block">
-                            Order Ready — Call Customer:
-                          </span>
-                          <span className="text-xs font-extrabold text-[#2B231F]">
-                            "{order.customer_name}" (Token #{order.tracking_token})
-                          </span>
-                        </div>
-                      </div>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-900 font-bold">
-                        Ready
-                      </span>
+                    <div className="mt-3 px-3 py-2.5 bg-emerald-50 border border-emerald-300 rounded-xl flex items-center gap-2">
+                      <Volume2 className="w-4 h-4 text-emerald-700 shrink-0" />
+                      <span className="text-xs font-bold text-emerald-800">Order Ready!</span>
                     </div>
                   )}
 

@@ -393,7 +393,7 @@ export const Menu: React.FC<MenuProps> = ({
       if (placeOrder) {
         generatedToken = placeOrder(checkoutPaymentMethod);
       } else {
-        generatedToken = `CP-${Math.floor(100000 + Math.random() * 900000)}`;
+        generatedToken = `${Math.floor(100000 + Math.random() * 900000)}`;
       }
 
       setIsSubmittingOrder(false);

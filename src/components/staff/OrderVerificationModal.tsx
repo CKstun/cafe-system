@@ -131,7 +131,7 @@ export const OrderVerificationModal: React.FC<OrderVerificationModalProps> = ({
                 hasReceipt ? (
                   <img
                     src={order.gcash_receipt_path}
-                    alt={`GCash receipt for order #${order.tracking_token}`}
+                    alt={`GCash receipt for order #${order.order_number || order.tracking_token}`}
                     onError={() => setImageError(true)}
                     style={{
                       transform: `scale(${zoomLevel})`,

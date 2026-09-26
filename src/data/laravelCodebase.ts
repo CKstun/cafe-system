@@ -465,7 +465,7 @@ class Order extends Model
     {
         static::creating(function ($order) {
             if (empty($order->tracking_token)) {
-                $order->tracking_token = 'CP-' . strtoupper(Str::random(6));
+                $order->tracking_token = (string) rand(100000, 999999);
             }
         });
     }

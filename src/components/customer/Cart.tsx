@@ -64,8 +64,9 @@ export const Cart: React.FC = () => {
       */}
       <div className="sticky top-0 z-50 bg-[#FDFBF7] border-b border-[#EADBCE]/80 shadow-xs px-4 sm:px-6 py-3 transition-all">
         <div className="flex items-center justify-between">
-          {/* Left Side: Back Navigation Arrow (<) */}
-          <div className="flex items-center">
+          {/* Left Side: Back Navigation Arrow + Café Pepita Logo (Grouped together) */}
+          <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+            {/* Back Navigation Arrow */}
             <button
               type="button"
               onClick={handleBackToMenu}
@@ -74,16 +75,10 @@ export const Cart: React.FC = () => {
             >
               <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
             </button>
-          </div>
 
-          {/* Middle / Main Section: Café Pepita Logo (navigates to /welcome) */}
-          <div
-            onClick={handleLogoClick}
-            title="Café Pepita — Return to Welcome Screen"
-            className="cursor-pointer group flex items-center justify-center"
-          >
-            <div className="w-11 h-11 rounded-full bg-white shadow-xs border border-[#EADBCE] flex items-center justify-center p-0.5 group-hover:scale-105 active:scale-95 transition">
-              <CafeLogo size={42} className="w-9 h-9" showBorder={false} />
+            {/* Café Pepita Logo (Non-clickable, static logo beside the back button) */}
+            <div className="w-10 h-10 rounded-full bg-white shadow-xs border border-[#EADBCE] flex items-center justify-center p-0.5 shrink-0 pointer-events-none select-none">
+              <CafeLogo size={36} className="w-8 h-8" showBorder={false} />
             </div>
           </div>
 

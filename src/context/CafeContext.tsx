@@ -404,7 +404,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
       timestamp: new Date(Date.now() - 1000 * 60 * 12).toISOString(),
       payload: {
         order_id: 1001,
-        tracking_token: 'CP-849201',
+        tracking_token: '849201',
         customer_name: 'Cheska Kimberly',
         order_type: 'dine-in',
         table_id: 2,
@@ -869,18 +869,19 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return parsed.map((ord: any, idx: number) => ({
             ...ord,
             order_number: ord.order_number || 1040 + idx + 1,
+            tracking_token: ord.tracking_token ? ord.tracking_token.replace(/^CP-/, '') : `${1040 + idx + 1}`,
             guest_session_id: ord.guest_session_id || `guest-session-demo-${ord.id || idx}`,
           }));
         }
       } catch {}
     }
-    // Initial sample orders for immediate demonstration with order numbers & guest session IDs
+    // Initial sample orders for immediate demonstration with clean numeric order numbers & tokens
     return [
       {
         id: 1001,
         order_number: 1041,
         guest_session_id: 'guest-session-cheska-kimberly',
-        tracking_token: 'CP-849201',
+        tracking_token: '849201',
         table_id: 2,
         customer_name: 'Cheska Kimberly',
         order_type: 'dine-in',
@@ -922,7 +923,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
         id: 1002,
         order_number: 1042,
         guest_session_id: 'guest-session-david-tan-1',
-        tracking_token: 'CP-712493',
+        tracking_token: '712493',
         table_id: null,
         customer_name: 'David Tan',
         order_type: 'take-out',
@@ -964,7 +965,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
         id: 1003,
         order_number: 1043,
         guest_session_id: 'guest-session-marco-valerio',
-        tracking_token: 'CP-902341',
+        tracking_token: '902341',
         table_id: null,
         customer_name: 'Marco Valerio',
         order_type: 'delivery',
@@ -1001,7 +1002,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
         id: 1004,
         order_number: 1044,
         guest_session_id: 'guest-session-david-tan-2',
-        tracking_token: 'CP-658219',
+        tracking_token: '658219',
         table_id: 4,
         customer_name: 'David Tan', // Same-name customer disambiguated with distinct Order #1044
         order_type: 'dine-in',
@@ -1042,7 +1043,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
         item_name: 'Dirty Matcha Espresso',
         change_type: 'sale',
         quantity_changed: -1,
-        notes: 'Order #CP-712493 online payment deduction',
+        notes: 'Order #712493 online payment deduction',
         created_at: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
       },
       {
@@ -1088,7 +1089,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [selectedTableId, setSelectedTableId] = useState<number | null>(null);
   const [deliveryDetails, setDeliveryDetails] = useState<DeliveryDetails | null>(null);
   const [cart, setCart] = useState<OrderItem[]>([]);
-  const [activeTrackingToken, setActiveTrackingToken] = useState<string | null>('CP-849201');
+  const [activeTrackingToken, setActiveTrackingToken] = useState<string | null>('849201');
 
   // Order Identifier Priority: Base all customer order lookups strictly on guest_session_id (UUID v4), NEVER on customer_name
   const customerOrders = useMemo(() => {
@@ -1644,7 +1645,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const placeOrder = (paymentMethod: PaymentMethod, gcashReceiptPath?: string): string => {
-    const trackingToken = 'CP-' + Math.floor(100000 + Math.random() * 900000);
+    const trackingToken = '' + Math.floor(100000 + Math.random() * 900000);
     const subtotal = cart.reduce((acc, curr) => acc + curr.price * curr.quantity, 0);
 
     const isOnlinePaid = paymentMethod === 'online';
@@ -2105,7 +2106,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const triggerTestEchoBroadcast = () => {
-    const randomToken = 'CP-' + Math.floor(100000 + Math.random() * 900000);
+    const randomToken = '' + Math.floor(100000 + Math.random() * 900000);
     const mockNames = ['Bianca De Leon', 'Rafael Cruz', 'Alyssa Mendoza', 'Juan Carlos'];
     const mockCustName = mockNames[Math.floor(Math.random() * mockNames.length)];
     const mockTable = Math.floor(Math.random() * 8) + 1;

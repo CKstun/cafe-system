@@ -56,42 +56,41 @@ export const Header: React.FC<HeaderProps> = ({
       {/* 3. Active Page Title & Subtitle                                           */}
       {/* ========================================================================= */}
       <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-        {/* Hamburger Menu Button (visible on mobile and tablet: block lg:hidden) */}
-        {onHamburgerToggle && (
-          <button
-            type="button"
-            onClick={onHamburgerToggle}
-            className="block lg:hidden p-1.5 -ml-1 text-[#2C1D11] hover:bg-[#4A2E19]/10 rounded-xl transition cursor-pointer"
-            title="Open Navigation"
-            aria-label="Open Navigation"
-          >
-            <Menu className="w-5 h-5 text-[#2C1D11]" />
-          </button>
-        )}
-
-        {/* Café Pepita Logo (tablet and mobile viewports) */}
-        <div
-          onClick={() => navigate(isAdmin ? '/admin/reports' : '/menu')}
-          className="block lg:hidden flex items-center cursor-pointer shrink-0"
-          title="Café Pepita"
+      {/* 1. Hamburger Menu Button (visible on mobile and tablet: lg:hidden) */}
+      {onHamburgerToggle && (
+        <button
+          type="button"
+          onClick={onHamburgerToggle}
+          className="lg:hidden p-1.5 -ml-1 text-[#2C1D11] hover:bg-[#4A2E19]/10 rounded-xl transition cursor-pointer shrink-0"
+          title="Open Navigation"
+          aria-label="Open Navigation"
         >
-          <div className="w-8 h-8 rounded-full bg-white shadow-2xs border border-[#2C1D11]/10 flex items-center justify-center p-0.5">
-            <CafeLogo size={28} className="w-6 h-6" showBorder={false} />
-          </div>
-        </div>
+          <Menu className="w-5 h-5 text-[#2C1D11]" />
+        </button>
+      )}
 
-        {/* Active Page Title */}
-        <div className="min-w-0">
-          <h1 className="font-display font-bold text-sm sm:text-base md:text-lg text-[#2C1D11] truncate tracking-tight">
-            {getHeaderTitle()}
-          </h1>
-          {subtitle && (
-            <p className="text-[11px] text-[#4A2E19]/70 truncate hidden sm:block">
-              {subtitle}
-            </p>
-          )}
+      {/* 2. Café Pepita Logo (Non-clickable, strictly left-aligned alongside hamburger) */}
+      <div
+        className="lg:hidden flex items-center shrink-0 pointer-events-none select-none"
+        aria-hidden="true"
+      >
+        <div className="w-8 h-8 rounded-full bg-white shadow-2xs border border-[#2C1D11]/10 flex items-center justify-center p-0.5">
+          <CafeLogo size={28} className="w-6 h-6" showBorder={false} />
         </div>
       </div>
+
+      {/* 3. Active Page Title & Subtitle */}
+      <div className="min-w-0 flex-1">
+        <h1 className="font-display font-bold text-sm sm:text-base md:text-lg text-[#2C1D11] truncate tracking-tight">
+          {getHeaderTitle()}
+        </h1>
+        {subtitle && (
+          <p className="text-[11px] text-[#4A2E19]/70 truncate hidden sm:block">
+            {subtitle}
+          </p>
+        )}
+      </div>
+    </div>
 
       {/* ========================================================================= */}
       {/* RIGHT UTILITY SECTION:                                                    */}
