@@ -53,7 +53,7 @@ class RolesAndPermissionsSeeder extends Seeder
             ['email' => 'admin@cafepita.com'],
             [
                 'name' => 'Maria Santos (Admin)',
-                'password' => Hash::make('Admin2025'),
+                'password' => bcrypt('Admin2025'),
                 'role' => 'admin',
                 'is_active' => true,
             ]
@@ -64,7 +64,7 @@ class RolesAndPermissionsSeeder extends Seeder
             ['email' => 'barista@cafepita.com'],
             [
                 'name' => 'Juan Dela Cruz (Barista)',
-                'password' => Hash::make('Barista2025'),
+                'password' => bcrypt('Barista2025'),
                 'role' => 'staff',
                 'is_active' => true,
             ]
