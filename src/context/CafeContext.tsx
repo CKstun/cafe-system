@@ -587,6 +587,22 @@ export const CafeProvider: React.FC<{
       },
     ]);
 
+  // Sync staff user list with backend on mount
+  useEffect(() => {
+    fetch('/api/admin/users')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && Array.isArray(data.users) && data.users.length > 0) {
+          setStaffUsers((prev) => {
+            const remoteMap = new Map(data.users.map((u: any) => [u.id, u]));
+            const localOnly = prev.filter((p) => !remoteMap.has(p.id));
+            return [...data.users, ...localOnly];
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const loginStaff = async (
     username: string,
     password: string
@@ -1719,6 +1735,106 @@ export const CafeProvider: React.FC<{
   }, [inventoryLogs]);
 
   // ============================================================
+  // MULTI-DEVICE REAL-TIME BACKEND SYNCHRONIZATION
+  // ============================================================
+  // Polls the Railway Express backend every 2.5s so changes on Device A
+  // (e.g. mobile order placed, payment verified, order status updated)
+  // appear instantaneously on Device B (tablet, laptop, KDS display)
+  const isSyncingRef = useRef(false);
+
+  useEffect(() => {
+    const fetchRemoteState = async () => {
+      if (isSyncingRef.current) return;
+      isSyncingRef.current = true;
+
+      try {
+        const [ordersRes, inventoryRes] = await Promise.all([
+          fetch('/api/orders').catch(() => null),
+          fetch('/api/inventory').catch(() => null),
+        ]);
+
+        if (ordersRes && ordersRes.ok) {
+          const data = await ordersRes.json();
+          if (data && Array.isArray(data.orders)) {
+            setOrders((prevLocalOrders) => {
+              // Merge remote orders with local orders without losing recently added local orders
+              const remoteOrders: Order[] = data.orders;
+              const remoteIdMap = new Map(remoteOrders.map((o) => [o.id, o]));
+              const localOnly = prevLocalOrders.filter((o) => !remoteIdMap.has(o.id));
+              
+              // Detect new orders arriving from other devices to fire chime & notification toast
+              if (remoteOrders.length > prevLocalOrders.length && prevLocalOrders.length > 0) {
+                const newestRemote = remoteOrders[0];
+                const alreadyPresent = prevLocalOrders.some((p) => p.id === newestRemote.id);
+                if (!alreadyPresent) {
+                  if (soundEnabled) {
+                    playOrderChime();
+                  }
+                  const newEvt: EchoBroadcastEvent = {
+                    id: 'echo-sync-' + Date.now(),
+                    event: 'App\\Events\\OrderPlaced',
+                    channel: 'private-staff.orders',
+                    timestamp: new Date().toISOString(),
+                    payload: {
+                      order_id: newestRemote.id,
+                      tracking_token: newestRemote.tracking_token,
+                      customer_name: newestRemote.customer_name,
+                      order_type: newestRemote.order_type,
+                      total_amount: newestRemote.total_amount,
+                      items_count: newestRemote.items?.length || 1,
+                      payment_method: newestRemote.payment_method,
+                      payment_status: newestRemote.payment_status,
+                      items: newestRemote.items?.map((i: any) => ({
+                        name: i.item_name,
+                        quantity: i.quantity,
+                        size: i.customizations?.size,
+                      })),
+                    },
+                  };
+                  setEchoEvents((prev) => [newEvt, ...prev.slice(0, 49)]);
+                  setLatestBroadcast(newEvt);
+                }
+              }
+
+              // Return merged list with newest on top
+              return [...remoteOrders, ...localOnly].sort(
+                (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+              );
+            });
+          }
+        }
+
+        if (inventoryRes && inventoryRes.ok) {
+          const invData = await inventoryRes.json();
+          if (invData && Array.isArray(invData.inventory)) {
+            setInventoryItems((prevInv) => {
+              const remoteMap = new Map(invData.inventory.map((it: any) => [String(it.id), it]));
+              return prevInv.map((local) => {
+                const match = remoteMap.get(String(local.id));
+                if (match && match.stock_quantity !== undefined) {
+                  return { ...local, stock_quantity: match.stock_quantity };
+                }
+                return local;
+              });
+            });
+          }
+        }
+      } catch (err) {
+        // Network transient error; fallback silently to localStorage
+      } finally {
+        isSyncingRef.current = false;
+      }
+    };
+
+    // Initial pull on mount
+    fetchRemoteState();
+
+    // Background interval sync every 2.5 seconds across all devices
+    const interval = setInterval(fetchRemoteState, 2500);
+    return () => clearInterval(interval);
+  }, [soundEnabled]);
+
+  // ============================================================
   // CATEGORY MANAGEMENT
   // ============================================================
 
@@ -2821,6 +2937,13 @@ export const CafeProvider: React.FC<{
       auditLog,
       ...prev,
     ]);
+
+    // Sync inventory restock to backend
+    fetch(`/api/inventory/${id}/restock`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ quantity: qty, notes }),
+    }).catch(() => {});
   };
 
   // ============================================================
@@ -3285,6 +3408,16 @@ export const CafeProvider: React.FC<{
       ...prev,
     ]);
 
+    // Dispatch asynchronous order creation to the Railway Express backend
+    // so all other devices (KDS, Staff, Admin) receive this order instantly
+    fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newOrder),
+    }).catch(() => {
+      // Offline fallback: order remains safely stored in local state
+    });
+
     // ----------------------------------------------------------
     // REAL-TIME STAFF EVENT
     // ----------------------------------------------------------
@@ -3466,6 +3599,12 @@ export const CafeProvider: React.FC<{
           : ord
       )
     );
+
+    // Sync order payment verification to backend
+    fetch(`/api/orders/${orderId}/verify-payment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    }).catch(() => {});
   };
 
   const rejectOrder = (
@@ -3491,6 +3630,13 @@ export const CafeProvider: React.FC<{
           : ord
       )
     );
+
+    // Sync rejection to backend
+    fetch(`/api/orders/${orderId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'cancelled', reason }),
+    }).catch(() => {});
   };
 
   const approveCashPayment = (
@@ -3522,6 +3668,13 @@ export const CafeProvider: React.FC<{
           : ord
       )
     );
+
+    // Sync status change to backend
+    fetch(`/api/orders/${orderId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    }).catch(() => {});
   };
 
   // ============================================================
