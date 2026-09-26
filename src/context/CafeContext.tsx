@@ -1735,6 +1735,40 @@ export const CafeProvider: React.FC<{
   }, [inventoryLogs]);
 
   // ============================================================
+  // ECHO / REAL-TIME
+  // ============================================================
+
+  const [echoConnected] = useState<boolean>(true);
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
+  const [latestBroadcast, setLatestBroadcast] = useState<EchoBroadcastEvent | null>(null);
+  const [echoEvents, setEchoEvents] = useState<EchoBroadcastEvent[]>([
+    {
+      id: 'init-evt-1',
+      event: 'App\\Events\\OrderPlaced',
+      channel: 'private-staff.orders',
+      timestamp: new Date(Date.now() - 1000 * 60 * 12).toISOString(),
+      payload: {
+        order_id: 1001,
+        tracking_token: '849201',
+        customer_name: 'Cheska Kimberly',
+        order_type: 'dine-in',
+        total_amount: 320,
+        items_count: 2,
+        payment_method: 'cash',
+        payment_status: 'unpaid',
+        items: [
+          { name: 'Spanish Latte', quantity: 1, size: '16oz' },
+          { name: 'Pepita Prime Tapsilog', quantity: 1, size: 'Regular' },
+        ],
+      },
+    },
+  ]);
+
+  const clearLatestBroadcast = () => {
+    setLatestBroadcast(null);
+  };
+
+  // ============================================================
   // MULTI-DEVICE REAL-TIME BACKEND SYNCHRONIZATION
   // ============================================================
   // Polls the Railway Express backend every 2.5s so changes on Device A
@@ -4249,77 +4283,8 @@ export const CafeProvider: React.FC<{
   };
 
   // ============================================================
-  // ECHO / REAL-TIME
+  // ECHO TEST BROADCAST ACTION
   // ============================================================
-
-  const [echoConnected] =
-    useState<boolean>(true);
-
-  const [soundEnabled, setSoundEnabled] =
-    useState<boolean>(true);
-
-  const [
-    latestBroadcast,
-    setLatestBroadcast,
-  ] =
-    useState<EchoBroadcastEvent | null>(
-      null
-    );
-
-  const [
-    echoEvents,
-    setEchoEvents,
-  ] =
-    useState<EchoBroadcastEvent[]>([
-      {
-        id: 'init-evt-1',
-        event:
-          'App\\Events\\OrderPlaced',
-        channel:
-          'private-staff.orders',
-        timestamp: new Date(
-          Date.now() -
-            1000 * 60 * 12
-        ).toISOString(),
-
-        payload: {
-          order_id: 1001,
-          tracking_token:
-            '849201',
-          customer_name:
-            'Cheska Kimberly',
-          order_type:
-            'dine-in',
-
-          total_amount: 320,
-          items_count: 2,
-          payment_method:
-            'cash',
-          payment_status:
-            'unpaid',
-
-          items: [
-            {
-              name:
-                'Spanish Latte',
-              quantity: 1,
-              size: '16oz',
-            },
-            {
-              name:
-                'Pepita Prime Tapsilog',
-              quantity: 1,
-              size: 'Regular',
-            },
-          ],
-        },
-      },
-    ]);
-
-  const clearLatestBroadcast =
-    () => {
-      setLatestBroadcast(null);
-    };
 
   const triggerTestEchoBroadcast =
     () => {
